@@ -15,7 +15,6 @@ spring:
     hibernate:
       format_sql: true
 
-
 item:
   reco:
     api:
