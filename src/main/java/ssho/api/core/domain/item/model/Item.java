@@ -1,8 +1,11 @@
-package ssho.api.core.domain;
+package ssho.api.core.domain.item.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import ssho.api.core.model.ProductExtra;
+import lombok.NoArgsConstructor;
+import ssho.api.core.domain.tag.model.ExpTag;
+import ssho.api.core.domain.tag.model.RealTag;
 
 import java.util.List;
 
@@ -11,6 +14,8 @@ import java.util.List;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Item {
     private String id;                  // 상품 고유 번호
     private String category;            // 상품 카테고리

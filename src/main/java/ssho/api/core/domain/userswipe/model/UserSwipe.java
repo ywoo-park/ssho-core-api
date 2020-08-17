@@ -1,7 +1,7 @@
-package ssho.api.core.model;
+package ssho.api.core.domain.userswipe.model;
 
 import lombok.Data;
-import ssho.api.core.domain.log.SwipeLog;
+import ssho.api.core.domain.swipelog.model.SwipeLog;
 
 import java.util.List;
 

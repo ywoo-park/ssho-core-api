@@ -1,7 +1,7 @@
-package ssho.api.core.dto;
+package ssho.api.core.domain.useritem.model.res;
 
 import lombok.Data;
-import ssho.api.core.domain.item.Item;
+import ssho.api.core.domain.item.model.Item;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package ssho.api.core.model;
+package ssho.api.core.domain.userswipe.model;
 
 import lombok.Data;
 

@@ -18,4 +18,4 @@ spring:
 item:
   reco:
     api:
-      host: https://calm-garden-78207.herokuapp.com
+      host: http://101.101.217.66:5000

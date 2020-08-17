@@ -1,4 +1,4 @@
-package ssho.api.core.domain.user;
+package ssho.api.core.domain.user.model;
 
 import lombok.Data;
 

@@ -1,4 +1,4 @@
-package ssho.api.core.service.impl;
+package ssho.api.core.service.useritemcache;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -7,15 +7,14 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
-import ssho.api.core.domain.item.Item;
-import ssho.api.core.domain.log.SwipeLog;
-import ssho.api.core.domain.user.User;
-import ssho.api.core.dto.UserItemReq;
-import ssho.api.core.dto.UserItemRes;
-import ssho.api.core.model.UserSwipe;
-import ssho.api.core.model.UserSwipeScore;
-import ssho.api.core.repository.UserRepository;
-import ssho.api.core.service.UserItemCacheService;
+import ssho.api.core.domain.item.model.Item;
+import ssho.api.core.domain.swipelog.model.SwipeLog;
+import ssho.api.core.domain.user.model.User;
+import ssho.api.core.domain.useritem.model.req.UserItemReq;
+import ssho.api.core.domain.useritem.model.res.UserItemRes;
+import ssho.api.core.domain.userswipe.model.UserSwipe;
+import ssho.api.core.domain.userswipe.model.UserSwipeScore;
+import ssho.api.core.repository.user.UserRepository;
 
 import java.util.ArrayList;
 import java.util.List;

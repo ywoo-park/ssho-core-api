@@ -1,4 +1,4 @@
-package ssho.api.core.domain.log;
+package ssho.api.core.domain.swipelog.model;
 
 import lombok.Data;
 import ssho.api.core.domain.tag.model.ExpTag;

@@ -1,11 +1,11 @@
-package ssho.api.core.api;
+package ssho.api.core.api.useritemcache;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import ssho.api.core.dto.UserItemRes;
-import ssho.api.core.service.impl.UserItemCacheServiceImpl;
+import ssho.api.core.domain.useritem.model.res.UserItemRes;
+import ssho.api.core.service.useritemcache.UserItemCacheServiceImpl;
 
 import java.util.List;
 
