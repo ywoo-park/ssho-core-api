@@ -1,0 +1,22 @@
+# Server
+server:
+  port: 8080
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://boogle-mysql-rdb-instance.coqyrunmax72.ap-northeast-2.rds.amazonaws.com:3306/ssho?serverTimezone=UTC&characterEncoding=UTF-8
+    username: boogleadmin
+    password: boogleadmin1234!
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+    open-in-view: false
+    show-sql: true
+    hibernate:
+      format_sql: true
+
+
+item:
+  reco:
+    api:
+      host: https://calm-garden-78207.herokuapp.com

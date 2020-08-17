@@ -1,7 +1,9 @@
 package ssho.api.core.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -10,6 +12,8 @@ import java.util.List;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ProductExtra {
     private List<String> extraImageUrlList;     // 상세 이미지 리스트
     private String description;                 // 상품 설명
