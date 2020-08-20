@@ -14,8 +14,11 @@ spring:
     show-sql: true
     hibernate:
       format_sql: true
+  redis:
+    host: 13.124.59.2
+    port: 6379
 
 item:
   reco:
     api:
-      host: http://101.101.217.66:5000
+      host: http://54.180.89.39:5000
