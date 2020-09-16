@@ -16,17 +16,17 @@ public class UserItemCacheController {
 
     private UserItemCacheServiceImpl userItemCacheService;
 
-    public UserItemCacheController(UserItemCacheServiceImpl userItemCacheService){
+    public UserItemCacheController(UserItemCacheServiceImpl userItemCacheService) {
         this.userItemCacheService = userItemCacheService;
     }
 
     @GetMapping("/update")
-    public List<UserItemCache> updateUserItemCache(){
+    public List<UserItemCache> updateUserItemCache() {
         return userItemCacheService.updateUserItemCache();
     }
 
     @GetMapping("")
-    public UserItemCache userItemCache(@RequestParam("userId") String userId){
+    public UserItemCache userItemCache(@RequestParam("userId") String userId) {
         return userItemCacheService.getUserItemCache(userId);
     }
 }

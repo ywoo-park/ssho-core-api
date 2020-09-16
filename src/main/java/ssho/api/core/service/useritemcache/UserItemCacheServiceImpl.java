@@ -9,6 +9,7 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import ssho.api.core.domain.item.model.Item;
 import ssho.api.core.domain.swipelog.model.SwipeLog;
+import ssho.api.core.domain.swipelog.model.res.UserSwipeLogRes;
 import ssho.api.core.domain.user.model.User;
 import ssho.api.core.domain.useritem.model.req.UserItemReq;
 import ssho.api.core.domain.useritemcache.model.UserItemCache;
@@ -42,7 +43,9 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
     public UserItemReq getUserItemList() {
 
         List<Item> itemList = items();
-        List<UserSwipe> userSwipeList = swipeLogs();
+        List<UserSwipeLogRes> userSwipeList = swipeLogs();
+
+        userSwipeList.stream().forEach(userSwipe -> log.info(userSwipe.toString()));
 
         List<UserSwipeScore> userSwipeScoreList = new ArrayList<>();
 
@@ -81,22 +84,24 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
     }
 
     @Override
-    public List<UserSwipe> swipeLogs() {
+    public List<UserSwipeLogRes> swipeLogs() {
 
         this.webClient = WebClient.builder().baseUrl("http://13.124.59.2:8082").exchangeStrategies(exchangeStrategies).build();
 
         List<User> userList = userRepository.findAll();
 
-        return webClient
-                .post()
-                .uri("/log/swipe/user/grouped")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON)
-                .bodyValue(userList)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<UserSwipe>>() {
-                })
-                .block();
+        List<UserSwipeLogRes> userSwipeLogRes =
+                webClient
+                        .post()
+                        .uri("/log/swipe/user/grouped")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .bodyValue(userList)
+                        .retrieve()
+                        .bodyToMono(new ParameterizedTypeReference<List<UserSwipeLogRes>>() {
+                        })
+                        .block();
+        return userSwipeLogRes;
     }
 
     public List<Item> items() {
@@ -163,7 +168,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
     }
 
     @Override
-    public UserItemCache getUserItemCache(String userId){
+    public UserItemCache getUserItemCache(String userId) {
 
         UserItemCache userItemCache = userItemCacheRepository.findById(userId).get();
 
@@ -175,7 +180,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
                         .stream()
                         .filter(item -> !swipedItemIdList.contains(item.getId()))
                         .collect(Collectors.toList())
-                        .subList(0,20);
+                        .subList(0, 20);
 
         userItemCache.setItemList(filteredItemList);
 

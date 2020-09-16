@@ -5,6 +5,6 @@ import org.springframework.stereotype.Repository;
 import ssho.api.core.domain.user.model.User;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, String>{
+public interface UserRepository extends JpaRepository<User, String> {
     User findByName(String name);
 }
