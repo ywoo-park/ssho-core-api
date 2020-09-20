@@ -26,6 +26,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean checkTutorial(final String userId) {
+
         this.webClient = WebClient.builder().baseUrl(LOG_API_HOST).build();
 
         return webClient

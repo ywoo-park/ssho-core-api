@@ -4,11 +4,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 import ssho.api.core.domain.useritemcache.model.UserItemCache;
 import ssho.api.core.service.useritemcache.UserItemCacheServiceImpl;
-
-import java.util.List;
 
 @RequestMapping("/cache/user-item")
 @RestController
@@ -21,8 +18,8 @@ public class UserItemCacheController {
     }
 
     @GetMapping("/update")
-    public List<UserItemCache> updateUserItemCache() {
-        return userItemCacheService.updateUserItemCache();
+    public void updateUserItemCache() {
+        userItemCacheService.updateUserItemCache();
     }
 
     @GetMapping("")

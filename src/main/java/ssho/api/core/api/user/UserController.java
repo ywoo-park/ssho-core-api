@@ -26,6 +26,10 @@ public class UserController {
         this.userService = userService;
     }
 
+    /**
+     * 회원 전체 조회
+     * @return
+     */
     @GetMapping("")
     public List<User> getUsers() {
         if (userRepository.findAll() == null) {
@@ -34,6 +38,12 @@ public class UserController {
         return userRepository.findAll();
     }
 
+    /**
+     * 로그인
+     * @param name
+     * @param httpServletResponse
+     * @return
+     */
     @GetMapping("/signin")
     public String signin(@RequestParam("name") String name, HttpServletResponse httpServletResponse) {
         String userId = userService.findUserIdByName(name);

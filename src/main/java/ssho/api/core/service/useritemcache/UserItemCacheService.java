@@ -1,16 +1,19 @@
 package ssho.api.core.service.useritemcache;
 
-import ssho.api.core.domain.swipelog.model.res.UserSwipeLogRes;
 import ssho.api.core.domain.useritemcache.model.UserItemCache;
-import ssho.api.core.domain.userswipe.model.UserSwipe;
-
-import java.util.List;
 
 public interface UserItemCacheService {
 
-    List<UserSwipeLogRes> swipeLogs();
+    /**
+     * 회원 추천 상품 캐시 업데이트
+     * @return
+     */
+    void updateUserItemCache();
 
-    List<UserItemCache> updateUserItemCache();
-
+    /**
+     * 회원 고유 번호로 회원 추천 상품 캐시 조회
+     * @param userId
+     * @return
+     */
     UserItemCache getUserItemCache(String userId);
 }
