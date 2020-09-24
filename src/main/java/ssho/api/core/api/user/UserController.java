@@ -1,11 +1,9 @@
 package ssho.api.core.api.user;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ssho.api.core.domain.user.model.User;
+import ssho.api.core.domain.user.model.req.SignInReq;
 import ssho.api.core.repository.user.UserRepository;
 import ssho.api.core.service.user.UserServiceImpl;
 
@@ -28,6 +26,7 @@ public class UserController {
 
     /**
      * 회원 전체 조회
+     *
      * @return
      */
     @GetMapping("")
@@ -40,14 +39,29 @@ public class UserController {
 
     /**
      * 로그인
-     * @param name
+     *
+     * @param signInReq
      * @param httpServletResponse
      * @return
      */
-    @GetMapping("/signin")
-    public String signin(@RequestParam("name") String name, HttpServletResponse httpServletResponse) {
-        String userId = userService.findUserIdByName(name);
+    @PostMapping("/signin")
+    public void signin(@RequestBody SignInReq signInReq, HttpServletResponse httpServletResponse) {
+
+        String token = userService.authUser(signInReq);
+
+        int userId = userRepository.findByEmail(signInReq.getEmail()).getId();
+
         httpServletResponse.addHeader("User-Type", userService.checkTutorial(userId) == true ? "pass" : "initial");
-        return userId;
+        httpServletResponse.addHeader("Token", token);
+    }
+
+    /**
+     * 회원 등록
+     *
+     * @param user
+     */
+    @PostMapping("/signup")
+    public void signup(@RequestBody User user) {
+        userService.saveUser(user);
     }
 }

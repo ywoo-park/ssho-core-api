@@ -1,5 +1,7 @@
 package ssho.api.core.service.user;
 
+import ssho.api.core.domain.user.model.User;
+
 public interface UserService {
 
     /**
@@ -7,12 +9,14 @@ public interface UserService {
      * @param name
      * @return
      */
-    String findUserIdByName(final String name);
+    int findUserIdByName(final String name);
+
+    String saveUser(final User user);
 
     /**
      * 회원의 튜토리얼 진행 여부 체크
      * @param userId
      * @return
      */
-    boolean checkTutorial(final String userId);
+    boolean checkTutorial(final int userId);
 }
