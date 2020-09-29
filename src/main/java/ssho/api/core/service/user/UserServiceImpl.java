@@ -9,7 +9,7 @@ import ssho.api.core.domain.user.model.req.SignInReq;
 import ssho.api.core.repository.user.UserRepository;
 import ssho.api.core.service.jwt.JwtService;
 
-import java.util.List;
+import java.util.Optional;
 
 
 @Service
@@ -81,5 +81,17 @@ public class UserServiceImpl implements UserService {
                 .retrieve()
                 .bodyToMono(Boolean.class)
                 .blockOptional().orElse(false);
+    }
+
+    public int authorization(final String jwt) {
+
+        final int userIdx = jwtService.decode(jwt).getUser_idx();
+        if (userIdx == -1) return -1;
+
+        final Optional<User> user = userRepository.findById(userIdx);
+        if (!user.isPresent()) return -1;
+
+        return userIdx;
+
     }
 }

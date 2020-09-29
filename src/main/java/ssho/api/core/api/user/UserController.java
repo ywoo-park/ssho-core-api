@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import ssho.api.core.domain.user.model.User;
 import ssho.api.core.domain.user.model.req.SignInReq;
+import ssho.api.core.domain.user.model.res.SignInRes;
 import ssho.api.core.repository.user.UserRepository;
 import ssho.api.core.service.user.UserServiceImpl;
 
@@ -45,14 +46,20 @@ public class UserController {
      * @return
      */
     @PostMapping("/signin")
-    public void signin(@RequestBody SignInReq signInReq, HttpServletResponse httpServletResponse) {
+    public SignInRes signin(@RequestBody SignInReq signInReq, HttpServletResponse httpServletResponse) {
 
         String token = userService.authUser(signInReq);
 
-        int userId = userRepository.findByEmail(signInReq.getEmail()).getId();
+        User user = userRepository.findByEmail(signInReq.getEmail());
 
-        httpServletResponse.addHeader("User-Type", userService.checkTutorial(userId) == true ? "pass" : "initial");
-        httpServletResponse.addHeader("Token", token);
+        final int userId = user.getId();
+        final String name = user.getName();
+
+        String userType = userService.checkTutorial(userId) == true ? "pass" : "initial";
+
+        SignInRes signInRes = SignInRes.builder().token(token).userType(userType).name(name).build();
+
+        return signInRes;
     }
 
     /**
