@@ -71,4 +71,9 @@ public class UserController {
     public void signup(@RequestBody User user) {
         userService.saveUser(user);
     }
+
+    @GetMapping("/check")
+    public boolean checkEmailRegistered(@RequestParam("email") String email){
+        return userService.checkEmailRegistered(email);
+    }
 }

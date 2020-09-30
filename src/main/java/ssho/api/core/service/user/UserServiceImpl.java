@@ -71,6 +71,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public boolean checkEmailRegistered(final String email) {
+        if(userRepository.findByEmail(email) != null){
+            return true;
+        }
+        return false;
+    }
+
+    @Override
     public boolean checkTutorial(final int userId) {
 
         this.webClient = WebClient.builder().baseUrl(LOG_API_HOST).build();

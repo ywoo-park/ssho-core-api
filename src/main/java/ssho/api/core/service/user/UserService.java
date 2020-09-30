@@ -13,6 +13,8 @@ public interface UserService {
 
     String saveUser(final User user);
 
+    boolean checkEmailRegistered(final String email);
+
     /**
      * 회원의 튜토리얼 진행 여부 체크
      * @param userId
