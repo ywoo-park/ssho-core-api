@@ -13,7 +13,6 @@ import ssho.api.core.domain.swipelog.model.res.UserSwipeLogRes;
 import ssho.api.core.domain.user.model.User;
 import ssho.api.core.domain.useritem.model.req.UserItemReq;
 import ssho.api.core.domain.useritemcache.model.UserItemCache;
-import ssho.api.core.domain.userswipe.model.UserSwipe;
 import ssho.api.core.domain.userswipe.model.UserSwipeScore;
 import ssho.api.core.repository.user.UserRepository;
 import ssho.api.core.repository.useritemcache.UserItemCacheRepository;
@@ -26,12 +25,19 @@ import java.util.stream.Collectors;
 @Service
 public class UserItemCacheServiceImpl implements UserItemCacheService {
 
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final UserItemCacheRepository userItemCacheRepository;
+
     private WebClient webClient;
-    private UserItemCacheRepository userItemCacheRepository;
 
     @Value("${item.reco.api.host}")
     private String ITEM_RECO_API_HOST;
+
+    @Value("${item.api.host}")
+    private String ITEM_API_HOST;
+
+    @Value("${log.api.host}")
+    private String LOG_API_HOST;
 
     private final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder().codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(-1)).build();
 
@@ -75,7 +81,44 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
     }
 
     @Override
+    public boolean checkSwipeLogSaved(String userId) {
+        this.webClient = WebClient.builder().baseUrl(LOG_API_HOST).exchangeStrategies(exchangeStrategies).build();
+
+        List<SwipeLog> swipeLogList =
+                webClient
+                        .get()
+                        .uri("/log/swipe/user?userId=" + userId)
+                        .retrieve()
+                        .bodyToMono(new ParameterizedTypeReference<List<SwipeLog>>() {
+                        })
+                        .block();
+
+        return swipeLogList.size() > 0;
+    }
+
+    @Override
+    public UserItemCache getInitialUserItemCache(String userId) {
+        this.webClient = WebClient.builder().baseUrl(ITEM_API_HOST).exchangeStrategies(exchangeStrategies).build();
+
+        List<Item> itemList =
+                webClient
+                .get()
+                .uri("/item/initial")
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<Item>>() {
+                })
+                .block();
+
+        return UserItemCache.builder().userId(userId).itemList(itemList).build();
+    }
+
+    @Override
     public UserItemCache getUserItemCache(String userId) {
+
+        // 회원 고유 번호에 해당하는 추천 상품 캐시가 없을시 캐시 업데이트를 먼저 수행
+        if(!userItemCacheRepository.findById(userId).isPresent()){
+            updateUserItemCache();
+        }
 
         // 추천 상품 캐시 조회
         UserItemCache userItemCache = userItemCacheRepository.findById(userId).get();
@@ -99,7 +142,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
 
     private List<Item> items() {
 
-        this.webClient = WebClient.builder().baseUrl("http://13.124.59.2:8081").exchangeStrategies(exchangeStrategies).build();
+        this.webClient = WebClient.builder().baseUrl(ITEM_API_HOST).exchangeStrategies(exchangeStrategies).build();
 
         return webClient
                 .get()
@@ -112,7 +155,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
 
     private List<String> swipedItemIdList(String userId) {
 
-        this.webClient = WebClient.builder().baseUrl("http://13.124.59.2:8082").exchangeStrategies(exchangeStrategies).build();
+        this.webClient = WebClient.builder().baseUrl(LOG_API_HOST).exchangeStrategies(exchangeStrategies).build();
 
         List<String> swipedItemIdList =
                 webClient
@@ -170,7 +213,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
 
     private List<UserSwipeLogRes> swipeLogs() {
 
-        this.webClient = WebClient.builder().baseUrl("http://13.124.59.2:8082").exchangeStrategies(exchangeStrategies).build();
+        this.webClient = WebClient.builder().baseUrl(LOG_API_HOST).exchangeStrategies(exchangeStrategies).build();
 
         List<User> userList = userRepository.findAll();
 

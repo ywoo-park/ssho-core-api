@@ -27,7 +27,15 @@ public class UserItemCacheController {
     @Auth
     @GetMapping("")
     public UserItemCache userItemCache(final HttpServletRequest httpServletRequest) {
+
         final String userId = String.valueOf(httpServletRequest.getAttribute("userId"));
-        return userItemCacheService.getUserItemCache(userId);
+
+        if(userItemCacheService.checkSwipeLogSaved(userId)){
+            return userItemCacheService.getUserItemCache(userId);
+        }
+
+        else {
+            return userItemCacheService.getInitialUserItemCache(userId);
+        }
     }
 }

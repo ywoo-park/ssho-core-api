@@ -27,7 +27,6 @@ public class UserController {
 
     /**
      * 회원 전체 조회
-     *
      * @return
      */
     @GetMapping("")
@@ -40,13 +39,11 @@ public class UserController {
 
     /**
      * 로그인
-     *
      * @param signInReq
-     * @param httpServletResponse
      * @return
      */
     @PostMapping("/signin")
-    public SignInRes signin(@RequestBody SignInReq signInReq, HttpServletResponse httpServletResponse) {
+    public SignInRes signin(@RequestBody SignInReq signInReq) {
 
         String token = userService.authUser(signInReq);
 
@@ -64,7 +61,6 @@ public class UserController {
 
     /**
      * 회원 등록
-     *
      * @param user
      */
     @PostMapping("/signup")
@@ -72,6 +68,11 @@ public class UserController {
         userService.saveUser(user);
     }
 
+    /**
+     * 이메일 중복 체크
+     * @param email
+     * @return
+     */
     @GetMapping("/check")
     public boolean checkEmailRegistered(@RequestParam("email") String email){
         return userService.checkEmailRegistered(email);

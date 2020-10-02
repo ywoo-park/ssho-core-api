@@ -4,6 +4,10 @@ import ssho.api.core.domain.useritemcache.model.UserItemCache;
 
 public interface UserItemCacheService {
 
+    boolean checkSwipeLogSaved(String userId);
+
+    UserItemCache getInitialUserItemCache(String userId);
+
     /**
      * 회원 추천 상품 캐시 업데이트
      * @return
