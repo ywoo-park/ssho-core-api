@@ -102,12 +102,12 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
 
         List<Item> itemList =
                 webClient
-                .get()
-                .uri("/item/initial")
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<Item>>() {
-                })
-                .block();
+                        .get()
+                        .uri("/item/initial")
+                        .retrieve()
+                        .bodyToMono(new ParameterizedTypeReference<List<Item>>() {
+                        })
+                        .block();
 
         return UserItemCache.builder().userId(userId).itemList(itemList).build();
     }
@@ -116,7 +116,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
     public UserItemCache getUserItemCache(String userId) {
 
         // 회원 고유 번호에 해당하는 추천 상품 캐시가 없을시 캐시 업데이트를 먼저 수행
-        if(!userItemCacheRepository.findById(userId).isPresent()){
+        if (!userItemCacheRepository.findById(userId).isPresent()) {
             updateUserItemCache();
         }
 
@@ -217,17 +217,15 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
 
         List<User> userList = userRepository.findAll();
 
-        List<UserSwipeLogRes> userSwipeLogRes =
-                webClient
-                        .post()
-                        .uri("/log/swipe/user/grouped")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .bodyValue(userList)
-                        .retrieve()
-                        .bodyToMono(new ParameterizedTypeReference<List<UserSwipeLogRes>>() {
-                        })
-                        .block();
-        return userSwipeLogRes;
+        return webClient
+                .post()
+                .uri("/log/swipe/user/grouped")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .bodyValue(userList)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<UserSwipeLogRes>>() {
+                })
+                .block();
     }
 }

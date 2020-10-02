@@ -8,8 +8,6 @@ import ssho.api.core.domain.user.model.res.SignInRes;
 import ssho.api.core.repository.user.UserRepository;
 import ssho.api.core.service.user.UserServiceImpl;
 
-import javax.servlet.http.HttpServletResponse;
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -17,8 +15,8 @@ import java.util.List;
 @RestController
 public class UserController {
 
-    private UserRepository userRepository;
-    private UserServiceImpl userService;
+    private final UserRepository userRepository;
+    private final UserServiceImpl userService;
 
     public UserController(final UserRepository userRepository, final UserServiceImpl userService) {
         this.userRepository = userRepository;
@@ -31,9 +29,6 @@ public class UserController {
      */
     @GetMapping("")
     public List<User> getUsers() {
-        if (userRepository.findAll() == null) {
-            return new ArrayList<>();
-        }
         return userRepository.findAll();
     }
 
@@ -51,12 +46,11 @@ public class UserController {
 
         final int userId = user.getId();
         final String name = user.getName();
+        final boolean admin = user.isAdmin();
 
-        String userType = userService.checkTutorial(userId) == true ? "pass" : "initial";
+        String userType = userService.checkTutorial(userId) ? "pass" : "initial";
 
-        SignInRes signInRes = SignInRes.builder().token(token).userType(userType).name(name).build();
-
-        return signInRes;
+        return SignInRes.builder().token(token).userType(userType).name(name).admin(admin).build();
     }
 
     /**

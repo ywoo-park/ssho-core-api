@@ -9,4 +9,5 @@ public class SignInRes {
     private String token;
     private String userType;
     private String name;
+    private boolean admin;
 }
