@@ -9,6 +9,7 @@ import ssho.api.core.domain.user.model.req.SignInReq;
 import ssho.api.core.repository.user.UserRepository;
 import ssho.api.core.service.jwt.JwtService;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -29,6 +30,13 @@ public class UserServiceImpl implements UserService {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+    }
+
+    @Override
+    public List<User> userList(){
+        List<User> userList = userRepository.findAll();
+        userList.forEach(user -> user.setPassword(""));
+        return userList;
     }
 
     @Override

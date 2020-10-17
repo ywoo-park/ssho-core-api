@@ -2,7 +2,11 @@ package ssho.api.core.service.user;
 
 import ssho.api.core.domain.user.model.User;
 
+import java.util.List;
+
 public interface UserService {
+
+    List<User> userList();
 
     /**
      * 회원 이름으로 회원 조회

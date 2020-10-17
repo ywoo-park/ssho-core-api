@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import ssho.api.core.domain.tag.model.ExpTag;
 import ssho.api.core.domain.tag.model.RealTag;
+import ssho.api.core.domain.tag.model.Tag;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -34,7 +35,7 @@ public class TagServiceImpl implements TagService {
     private final WebClient webClient;
 
     public TagServiceImpl(final RestHighLevelClient restHighLevelClient,
-                      final WebClient.Builder webClientBuilder) {
+                          final WebClient.Builder webClientBuilder) {
         this.restHighLevelClient = restHighLevelClient;
         this.webClient = webClientBuilder.baseUrl("http://13.124.59.2:8082").build();
     }
@@ -110,6 +111,65 @@ public class TagServiceImpl implements TagService {
         }).collect(Collectors.toList());
 
         return results;
+    }
+
+    @Override
+    public List<ExpTag> findAllExpTags(final String index) {
+
+        //인자로 주어진 index 에서 검
+        SearchRequest searchRequest = new SearchRequest(index);
+
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+
+        // search query 최대 크기 set
+        sourceBuilder.size(1000);
+
+        searchRequest.source(sourceBuilder);
+
+        // ES로 부터 데이터 받기
+        SearchResponse searchResponse = null;
+
+        try {
+            searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        SearchHit[] searchHits = searchResponse.getHits().getHits();
+
+        List<ExpTag> results = Arrays.stream(searchHits).map(hit -> {
+            try {
+                return new ObjectMapper()
+                        .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
+                        .readValue(hit.getSourceAsString(), ExpTag.class);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }).collect(Collectors.toList());
+
+        return results;
+    }
+
+    @Override
+    public List<Tag> findAllTags() {
+
+        List<ExpTag> expTagList = findAllExpTags("exp-tag");
+        List<RealTag> realTagList = findAllRealTags("real-tag");
+
+        List<Tag> tagList = expTagList
+                .stream()
+                .map(expTag -> Tag.builder().expTag(expTag).build())
+                .collect(Collectors.toList());
+
+        return tagList.stream().map(tag -> {
+            ExpTag expTag = tag.getExpTag();
+            tag.setRealTagList(realTagList
+                    .stream()
+                    .filter(realTag -> realTag.getExpTagId().equals(expTag.getId()))
+                    .collect(Collectors.toList()));
+            return tag;
+        }).collect(Collectors.toList());
     }
 
     @Override

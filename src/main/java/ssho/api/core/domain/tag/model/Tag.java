@@ -3,9 +3,11 @@ package ssho.api.core.domain.tag.model;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 @Builder
-public class TagRes {
+public class Tag {
     private ExpTag expTag;
-    private RealTag realTag;
+    private List<RealTag> realTagList;
 }

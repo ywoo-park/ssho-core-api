@@ -9,6 +9,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import ssho.api.core.domain.swipelog.model.SwipeLog;
 import ssho.api.core.domain.tag.model.ExpTag;
 import ssho.api.core.domain.tag.model.RealTag;
+import ssho.api.core.domain.tag.model.Tag;
 import ssho.api.core.domain.tag.model.TagRes;
 import ssho.api.core.service.tag.TagServiceImpl;
 
@@ -37,14 +38,31 @@ public class TagController {
         this.webClient = WebClient.builder().baseUrl(ITEM_RECO_API_HOST).build();
     }
 
+    /**
+     * 리얼 태그 리스트 저장
+     *
+     * @param tagList
+     * @throws IOException
+     */
     @PostMapping("/real")
     public void saveRealTag(@RequestBody List<RealTag> tagList) throws IOException {
         tagService.saveRealTag(tagList, "real-tag");
     }
 
+    /**
+     * 노출 태그 리스트 저장
+     *
+     * @param tagList
+     * @throws IOException
+     */
     @PostMapping("/exp")
     public void saveExpTag(@RequestBody List<ExpTag> tagList) throws IOException {
         tagService.saveExpTag(tagList, "exp-tag");
+    }
+
+    @GetMapping("")
+    public List<Tag> findAllTags() {
+        return tagService.findAllTags();
     }
 
     @GetMapping("/real")
@@ -54,11 +72,13 @@ public class TagController {
 
     @GetMapping("/exp/{name}")
     public TagRes findExpTagAndRealTagByRealTagName(@PathVariable("name") String tagName) {
-        TagRes tagRes = new TagRes();
-        tagRes.setRealTag(tagService.findRealTagByRealTagName(tagName));
-        tagRes.setExpTag(tagService.findExpTagByRealTagName(tagRes.getRealTag().getExpTagId()));
 
-        return tagRes;
+        RealTag realTag = tagService.findRealTagByRealTagName(tagName);
+
+        return TagRes.builder()
+                .realTag(realTag)
+                .expTag(tagService.findExpTagByRealTagName(realTag.getExpTagId()))
+                .build();
     }
 
     @DeleteMapping("/real")
