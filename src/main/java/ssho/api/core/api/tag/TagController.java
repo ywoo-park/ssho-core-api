@@ -1,141 +1,41 @@
 package ssho.api.core.api.tag;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.client.WebClient;
-import ssho.api.core.domain.swipelog.model.SwipeLog;
-import ssho.api.core.domain.tag.model.ExpTag;
-import ssho.api.core.domain.tag.model.RealTag;
 import ssho.api.core.domain.tag.model.Tag;
-import ssho.api.core.domain.tag.model.TagRes;
 import ssho.api.core.service.tag.TagServiceImpl;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Slf4j
 @RestController
 @RequestMapping("/tag")
 public class TagController {
 
-    private TagServiceImpl tagService;
-    private WebClient webClient;
-
-    @Value("${item.reco.api.host}")
-    private String ITEM_RECO_API_HOST;
-
-    @Value("${log.api.host}")
-    private String LOG_API_HOST;
+    private final TagServiceImpl tagService;
 
     public TagController(final TagServiceImpl tagService) {
         this.tagService = tagService;
-        this.webClient = WebClient.builder().baseUrl(ITEM_RECO_API_HOST).build();
     }
 
     /**
-     * 리얼 태그 리스트 저장
-     *
-     * @param tagList
+     * 태그 저장
+     * @param tagNameList
      * @throws IOException
      */
-    @PostMapping("/real")
-    public void saveRealTag(@RequestBody List<RealTag> tagList) throws IOException {
-        tagService.saveRealTag(tagList, "real-tag");
+    @PostMapping("")
+    public void save(@RequestBody List<String> tagNameList) throws IOException {
+        tagService.save(tagNameList);
     }
 
     /**
-     * 노출 태그 리스트 저장
-     *
-     * @param tagList
-     * @throws IOException
+     * 태그 전체 조회
+     * @return
      */
-    @PostMapping("/exp")
-    public void saveExpTag(@RequestBody List<ExpTag> tagList) throws IOException {
-        tagService.saveExpTag(tagList, "exp-tag");
-    }
-
     @GetMapping("")
-    public List<Tag> findAllTags() {
-        return tagService.findAllTags();
-    }
-
-    @GetMapping("/real")
-    public List<RealTag> findAllRealTags() {
-        return tagService.findAllRealTags("real-tag");
-    }
-
-    @GetMapping("/exp/{name}")
-    public TagRes findExpTagAndRealTagByRealTagName(@PathVariable("name") String tagName) {
-
-        RealTag realTag = tagService.findRealTagByRealTagName(tagName);
-
-        return TagRes.builder()
-                .realTag(realTag)
-                .expTag(tagService.findExpTagByRealTagName(realTag.getExpTagId()))
-                .build();
-    }
-
-    @DeleteMapping("/real")
-    public void deleteAllRealTag() {
-        tagService.deleteAllRealTags("real-tag");
-    }
-
-    @DeleteMapping("/exp")
-    public void deleteAllExpTag() {
-        tagService.deleteAllExpTags("exp-tag");
-    }
-
-    @GetMapping("/reco")
-    public List<ExpTag> getRecoExpTagList(@RequestParam("userId") String userId, HttpServletResponse response) {
-        response.addHeader("User-Type", buildUserTypeBySwipeLogCount(userId));
-        return tagService.getExpTagListOrderedByTagCountByUserId(userId);
-    }
-
-    @GetMapping("/search")
-    public List<ExpTag> getSearchExpTagList(@RequestParam("keyword") String keyword, @RequestParam("userId") String userId, HttpServletResponse response) {
-        response.addHeader("User-Type", buildUserTypeBySwipeLogCount(userId));
-        return tagService.getExpTagListOrderedBySearchScoreByKeyword(keyword);
-    }
-
-    @PostMapping("/embedding/real")
-    public List<RealTag> getEmbeddingSetRealTagList(@RequestBody List<RealTag> realTagList) {
-
-        List<RealTag> embeddingSetRealTagList =
-                new ArrayList<>(Objects.requireNonNull(webClient
-                        .post()
-                        .uri("/embedding/real")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .bodyValue(realTagList)
-                        .retrieve()
-                        .bodyToMono(new ParameterizedTypeReference<List<RealTag>>() {
-                        })
-                        .block()));
-
-        return embeddingSetRealTagList;
-    }
-
-    private String buildUserTypeBySwipeLogCount(String userId) {
-        return swipeLogCount(userId) < 100 ? "initial" : "pass";
-    }
-
-    private int swipeLogCount(String userId) {
-
-        webClient = WebClient.builder().baseUrl(LOG_API_HOST).build();
-
-        return new ArrayList<>(Objects.requireNonNull(webClient
-                .get()
-                .uri("/log/swipe/user?userId=" + userId)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<SwipeLog>>() {
-                })
-                .block())).size();
+    public List<Tag> getAllTagList() {
+        return tagService.allList();
     }
 }
 

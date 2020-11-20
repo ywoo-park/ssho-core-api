@@ -16,5 +16,5 @@ import java.util.List;
 public class UserItemCache {
     private int id;
     private String userId;
-    private List<Item> itemList;
+    private List<String> itemIdList;
 }

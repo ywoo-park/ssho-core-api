@@ -1,6 +1,16 @@
 package ssho.api.core.service.useritemcache;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
@@ -15,8 +25,8 @@ import ssho.api.core.domain.useritem.model.req.UserItemReq;
 import ssho.api.core.domain.useritemcache.model.UserItemCache;
 import ssho.api.core.domain.userswipe.model.UserSwipeScore;
 import ssho.api.core.repository.user.UserRepository;
-import ssho.api.core.repository.useritemcache.UserItemCacheRepository;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,7 +36,8 @@ import java.util.stream.Collectors;
 public class UserItemCacheServiceImpl implements UserItemCacheService {
 
     private final UserRepository userRepository;
-    private final UserItemCacheRepository userItemCacheRepository;
+    private final RestHighLevelClient restHighLevelClient;
+    private final ObjectMapper objectMapper;
 
     private WebClient webClient;
 
@@ -39,15 +50,19 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
     @Value("${log.api.host}")
     private String LOG_API_HOST;
 
+    private String USER_ITEM_CACHE_INDEX = "cache-useritem";
+
     private final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder().codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(-1)).build();
 
-    public UserItemCacheServiceImpl(final UserRepository userRepository, final UserItemCacheRepository userItemCacheRepository) {
+    public UserItemCacheServiceImpl(final UserRepository userRepository,
+                                    final RestHighLevelClient restHighLevelClient, final ObjectMapper objectMapper) {
         this.userRepository = userRepository;
-        this.userItemCacheRepository = userItemCacheRepository;
+        this.restHighLevelClient = restHighLevelClient;
+        this.objectMapper = objectMapper;
     }
 
     @Override
-    public void updateUserItemCache() {
+    public void updateUserItemCache() throws IOException {
 
         UserItemReq userItemReq = getUserItemList();
 
@@ -71,71 +86,35 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
                             return -1;
                         }).collect(Collectors.toList());
 
-        userItemCacheList.stream().forEach(userItemCache -> userItemCache.setId(Integer.parseInt(userItemCache.getUserId())));
+        userItemCacheList.forEach(userItemCache -> userItemCache.setId(Integer.parseInt(userItemCache.getUserId())));
 
-        // 기존의 회원 추천 상품 캐시 삭제
-        userItemCacheRepository.deleteAll();
-
-        // 회원 추천 상품 캐시 저장
-        userItemCacheRepository.saveAll(userItemCacheList);
+        delete(USER_ITEM_CACHE_INDEX);
+        save(userItemCacheList, USER_ITEM_CACHE_INDEX);
     }
 
     @Override
-    public boolean checkSwipeLogSaved(String userId) {
-        this.webClient = WebClient.builder().baseUrl(LOG_API_HOST).exchangeStrategies(exchangeStrategies).build();
-
-        List<SwipeLog> swipeLogList =
-                webClient
-                        .get()
-                        .uri("/log/swipe/user?userId=" + userId)
-                        .retrieve()
-                        .bodyToMono(new ParameterizedTypeReference<List<SwipeLog>>() {
-                        })
-                        .block();
-
-        return swipeLogList.size() > 0;
-    }
-
-    @Override
-    public UserItemCache getInitialUserItemCache(String userId) {
-        this.webClient = WebClient.builder().baseUrl(ITEM_API_HOST).exchangeStrategies(exchangeStrategies).build();
-
-        List<Item> itemList =
-                webClient
-                        .get()
-                        .uri("/item/initial")
-                        .retrieve()
-                        .bodyToMono(new ParameterizedTypeReference<List<Item>>() {
-                        })
-                        .block();
-
-        return UserItemCache.builder().userId(userId).itemList(itemList).build();
-    }
-
-    @Override
-    public UserItemCache getUserItemCache(String userId) {
-
-        // 회원 고유 번호에 해당하는 추천 상품 캐시가 없을시 캐시 업데이트를 먼저 수행
-        if (!userItemCacheRepository.findById(userId).isPresent()) {
-            updateUserItemCache();
-        }
+    public UserItemCache getUserItemCache(int userId) throws IOException {
 
         // 추천 상품 캐시 조회
-        UserItemCache userItemCache = userItemCacheRepository.findById(userId).get();
+        UserItemCache userItemCache = getByUserId(userId, USER_ITEM_CACHE_INDEX);
 
         // 스와이프한 상품 고유 번호 리스트 조회
         List<String> swipedItemIdList = swipedItemIdList(userItemCache.getUserId());
 
-        // 스와이프한 상품 필터링
-        // 20개 상품
-        List<Item> filteredItemList =
-                userItemCache.getItemList()
-                        .stream()
-                        .filter(item -> !swipedItemIdList.contains(item.getId()))
-                        .collect(Collectors.toList())
-                        .subList(0, 20);
+        if(swipedItemIdList.size() > 0) {
+            // 스와이프한 상품 필터링
+            // 20개 상품
+            List<String> filteredItemIdList =
+                    userItemCache.getItemIdList()
+                            .stream()
+                            .filter(itemId -> !swipedItemIdList.contains(itemId))
+                            .collect(Collectors.toList())
+                            .subList(0, 20);
 
-        userItemCache.setItemList(filteredItemList);
+            userItemCache.setItemIdList(filteredItemIdList);
+        }
+
+        userItemCache.setItemIdList(userItemCache.getItemIdList().subList(0, 20));
 
         return userItemCache;
     }
@@ -173,23 +152,32 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
 
     private UserItemReq getUserItemList() {
 
-        List<Item> itemList = items();
+        // 전체 등록 상품 조회
+        List<String> itemIdList = items().stream().map(Item::getId).collect(Collectors.toList());
+
+        // 회원 전체 스와이프 로그 조회
         List<UserSwipeLogRes> userSwipeList = swipeLogs();
+
+        UserItemReq userItemReq = new UserItemReq();
         List<UserSwipeScore> userSwipeScoreList = new ArrayList<>();
 
         userSwipeList
-                .stream()
                 .forEach(userSwipe -> {
                     UserSwipeScore userSwipeScore = new UserSwipeScore();
-                    int[] scoreList = new int[itemList.size()];
+                    int[] scoreList = new int[itemIdList.size()];
 
                     List<SwipeLog> swipeLogList = userSwipe.getSwipeLogList();
+
                     String userId = userSwipe.getUserId();
                     userSwipeScore.setUserId(userId);
 
-                    for (int i = 0; i < itemList.size(); i++) {
+                    for (int i = 0; i < itemIdList.size(); i++) {
 
-                        String itemId = itemList.get(i).getId();
+                        String itemId = itemIdList.get(i);
+
+                        if(swipeLogList == null || swipeLogList.size() == 0) {
+                            continue;
+                        }
 
                         for (int j = 0; j < swipeLogList.size(); j++) {
 
@@ -204,8 +192,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
                     userSwipeScoreList.add(userSwipeScore);
                 });
 
-        UserItemReq userItemReq = new UserItemReq();
-        userItemReq.setItemList(itemList);
+        userItemReq.setItemIdList(itemIdList);
         userItemReq.setUserSwipeScoreList(userSwipeScoreList);
 
         return userItemReq;
@@ -227,5 +214,36 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
                 .bodyToMono(new ParameterizedTypeReference<List<UserSwipeLogRes>>() {
                 })
                 .block();
+    }
+
+    private void delete(String index) {
+        try {
+            DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(index);
+            restHighLevelClient.indices().delete(deleteIndexRequest, RequestOptions.DEFAULT);
+        }
+        catch (ElasticsearchStatusException | IOException e) { }
+    }
+
+    private void save(List<UserItemCache> cacheList, String index) throws IOException {
+
+        final BulkRequest bulkRequest = new BulkRequest();
+
+        for (UserItemCache cache : cacheList) {
+
+            IndexRequest indexRequest =
+                    new IndexRequest(index)
+                            .id(cache.getUserId())
+                            .source(objectMapper.writeValueAsString(cache), XContentType.JSON);
+
+            bulkRequest.add(indexRequest);
+        }
+
+        restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+    }
+
+    private UserItemCache getByUserId(int userId, String index) throws IOException {
+        GetRequest getRequest = new GetRequest(index, String.valueOf(userId));
+        GetResponse getResponse = restHighLevelClient.get(getRequest, RequestOptions.DEFAULT);
+        return objectMapper.readValue(getResponse.getSourceAsString(), UserItemCache.class);
     }
 }

@@ -3,39 +3,25 @@ package ssho.api.core.api.useritemcache;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import ssho.api.core.domain.useritemcache.model.UserItemCache;
 import ssho.api.core.service.useritemcache.UserItemCacheServiceImpl;
-import ssho.api.core.util.auth.Auth;
 
-import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 
 @RequestMapping("/cache/user-item")
 @RestController
 public class UserItemCacheController {
 
-    private UserItemCacheServiceImpl userItemCacheService;
+    private final UserItemCacheServiceImpl userItemCacheService;
 
     public UserItemCacheController(UserItemCacheServiceImpl userItemCacheService) {
         this.userItemCacheService = userItemCacheService;
     }
 
+    /**
+     * 회원 추천 상품 캐시 업데이트
+     */
     @GetMapping("/update")
-    public void updateUserItemCache() {
+    public void updateUserItemCache() throws IOException {
         userItemCacheService.updateUserItemCache();
-    }
-
-    @Auth
-    @GetMapping("")
-    public UserItemCache userItemCache(final HttpServletRequest httpServletRequest) {
-
-        final String userId = String.valueOf(httpServletRequest.getAttribute("userId"));
-
-        if(userItemCacheService.checkSwipeLogSaved(userId)){
-            return userItemCacheService.getUserItemCache(userId);
-        }
-
-        else {
-            return userItemCacheService.getInitialUserItemCache(userId);
-        }
     }
 }

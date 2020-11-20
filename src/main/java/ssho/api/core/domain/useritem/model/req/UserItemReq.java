@@ -8,6 +8,6 @@ import java.util.List;
 
 @Data
 public class UserItemReq {
-    List<Item> itemList;
+    List<String> itemIdList;
     List<UserSwipeScore> userSwipeScoreList;
 }
