@@ -1,28 +1,24 @@
 package ssho.api.core.service.user;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 import ssho.api.core.domain.user.model.User;
 import ssho.api.core.domain.user.model.req.SignInReq;
+import ssho.api.core.domain.user.model.res.SignInRes;
 import ssho.api.core.repository.user.UserRepository;
 import ssho.api.core.service.jwt.JwtService;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @Service
 public class UserServiceImpl implements UserService {
 
     private UserRepository userRepository;
-    private WebClient webClient;
     private PasswordEncoder passwordEncoder;
     private JwtService jwtService;
-
-    @Value("${log.api.host}")
-    private String LOG_API_HOST;
 
     public UserServiceImpl(final UserRepository userRepository,
                            final PasswordEncoder passwordEncoder,
@@ -33,46 +29,38 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<User> userList(){
-        List<User> userList = userRepository.findAll();
-        userList.forEach(user -> user.setPassword(""));
-        return userList;
-    }
+    public SignInRes authUser(final SignInReq signInReq) {
 
-    @Override
-    public int findUserIdByName(final String name) {
-        return userRepository.findByName(name).getId();
-    }
+        SignInRes signInRes = new SignInRes();
 
-    /**
-     * 회원 정보 인증
-     *
-     * @param signInReq 회원 데이터
-     * @return DefaultRes
-     */
-    public String authUser(final SignInReq signInReq) {
-
+        // 이메일 일치
         if (userRepository.findByEmail(signInReq.getEmail()) != null) {
 
             User user = userRepository.findByEmail(signInReq.getEmail());
 
+            // 비밀번호 일치
             if (passwordEncoder.matches(signInReq.getPassword(), user.getPassword())) {
-                return new JwtService.TokenRes(jwtService.create(user.getId())).getToken();
-            }
 
-            else{
-                return "";
+                // 토큰값 생성
+                String token =  new JwtService.TokenRes(jwtService.create(user.getId())).getToken();
+
+                signInRes.setName(user.getName());
+                signInRes.setToken(token);
+                signInRes.setAdmin(user.isAdmin());
+
+                return signInRes;
             }
-        } else {
-            return "";
         }
+        return signInRes;
     }
 
     @Override
     public String saveUser(final User user) {
 
+        // 비밀번호 암호화
         String encodedPassword = passwordEncoder.encode(user.getPassword());
         user.setPassword(encodedPassword);
+
         int userId = userRepository.save(user).getId();
 
         return new JwtService.TokenRes(jwtService.create(userId)).getToken();
@@ -80,23 +68,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean checkEmailRegistered(final String email) {
-        if(userRepository.findByEmail(email) != null){
-            return true;
-        }
-        return false;
+        return userRepository.findByEmail(email) != null;
     }
 
     @Override
-    public boolean checkTutorial(final int userId) {
-
-        this.webClient = WebClient.builder().baseUrl(LOG_API_HOST).build();
-
-        return webClient
-                .get()
-                .uri("/log/tutorial?userId=" + userId)
-                .retrieve()
-                .bodyToMono(Boolean.class)
-                .blockOptional().orElse(false);
+    public List<User> userList(){
+        return userRepository.findAll().stream().peek(user -> user.setPassword("")).collect(Collectors.toList());
     }
 
     public int authorization(final String jwt) {
@@ -108,6 +85,5 @@ public class UserServiceImpl implements UserService {
         if (!user.isPresent()) return -1;
 
         return userIdx;
-
     }
 }

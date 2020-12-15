@@ -6,7 +6,6 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 import ssho.api.core.domain.carddeck.CardDeck;
 import ssho.api.core.domain.item.model.Item;
 import ssho.api.core.domain.useritemcache.model.UserItemCache;

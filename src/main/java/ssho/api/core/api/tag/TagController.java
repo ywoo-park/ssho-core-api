@@ -6,6 +6,8 @@ import ssho.api.core.domain.tag.model.Tag;
 import ssho.api.core.service.tag.TagServiceImpl;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -25,7 +27,7 @@ public class TagController {
      * @throws IOException
      */
     @PostMapping("")
-    public void save(@RequestBody List<String> tagNameList) throws IOException {
+    public void saveAll(@RequestBody List<String> tagNameList) throws IOException {
         tagService.save(tagNameList);
     }
 
