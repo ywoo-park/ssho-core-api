@@ -29,6 +29,7 @@ public class TagServiceImpl implements TagService {
     private final ObjectMapper objectMapper;
 
     private final String TAG_INDEX = "tag";
+    private final Integer SEARCH_SIZE = 1000;
 
     public TagServiceImpl(final RestHighLevelClient restHighLevelClient,
                           final ObjectMapper objectMapper) {
@@ -41,26 +42,25 @@ public class TagServiceImpl implements TagService {
 
         for (String name : tagNameList) {
             Tag tag = new Tag();
-
-            String id = UUID.randomUUID().toString().replace("-", "");
-            tag.setId(id);
+            tag.setId(getUniqueId());
             tag.setName(name);
 
             IndexRequest indexRequest = new IndexRequest(TAG_INDEX).source(objectMapper.writeValueAsString(tag), XContentType.JSON);
-            indexRequest.id(id);
+            indexRequest.id(tag.getId());
 
             restHighLevelClient.index(indexRequest, RequestOptions.DEFAULT);
         }
     }
 
     @Override
-    public List<Tag> allList() {
+    public List<Tag> getTagList() {
+
         SearchRequest searchRequest = new SearchRequest();
         searchRequest.indices(TAG_INDEX);
 
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-        searchSourceBuilder.size(1000);
+        searchSourceBuilder.size(SEARCH_SIZE);
         searchRequest.source(searchSourceBuilder);
 
         try {
@@ -79,6 +79,10 @@ public class TagServiceImpl implements TagService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private static String getUniqueId() {
+        return UUID.randomUUID().toString().replace("-", "");
     }
 }
 

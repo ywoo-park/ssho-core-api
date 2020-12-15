@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface TagService {
     void save(List<String> tagNameList) throws IOException;
-    List<Tag> allList();
+    List<Tag> getTagList();
 }

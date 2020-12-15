@@ -6,8 +6,6 @@ import ssho.api.core.domain.tag.model.Tag;
 import ssho.api.core.service.tag.TagServiceImpl;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -37,7 +35,7 @@ public class TagController {
      */
     @GetMapping("")
     public List<Tag> getAllTagList() {
-        return tagService.allList();
+        return tagService.getTagList();
     }
 }
 
