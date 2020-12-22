@@ -17,7 +17,6 @@ public class CardDeckController {
     private final CardDeckServiceImpl cardDeckService;
 
     public CardDeckController(CardDeckServiceImpl cardDeckService) {
-
         this.cardDeckService = cardDeckService;
     }
 
@@ -29,7 +28,6 @@ public class CardDeckController {
     @Auth
     @GetMapping("")
     public CardDeck getCardDeck(final HttpServletRequest httpServletRequest) throws IOException {
-
         final String userId = String.valueOf(httpServletRequest.getAttribute("userId"));
         return cardDeckService.cardDeckByUserId(Integer.parseInt(userId));
     }

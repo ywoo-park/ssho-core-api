@@ -6,7 +6,7 @@ import ssho.api.core.domain.user.model.User;
 import ssho.api.core.domain.user.model.req.SignInReq;
 import ssho.api.core.domain.user.model.res.SignInRes;
 import ssho.api.core.repository.user.UserRepository;
-import ssho.api.core.service.jwt.JwtService;
+import ssho.api.core.service.user.jwt.JwtService;
 
 import java.util.List;
 import java.util.Optional;

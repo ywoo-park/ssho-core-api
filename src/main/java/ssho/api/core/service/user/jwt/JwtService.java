@@ -1,4 +1,4 @@
-package ssho.api.core.service.jwt;
+package ssho.api.core.service.user.jwt;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTCreator;

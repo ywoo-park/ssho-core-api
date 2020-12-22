@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 @Service
 public class CardDeckServiceImpl implements CardDeckService {
 
-    private UserItemCacheServiceImpl userItemCacheService;
+    private final UserItemCacheServiceImpl userItemCacheService;
     private final RestHighLevelClient restHighLevelClient;
     private final ObjectMapper objectMapper;
 

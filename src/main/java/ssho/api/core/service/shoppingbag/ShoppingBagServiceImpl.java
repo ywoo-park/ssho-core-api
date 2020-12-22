@@ -1,11 +1,11 @@
 package ssho.api.core.service.shoppingbag;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -21,16 +21,16 @@ import java.util.stream.Collectors;
 @Service
 public class ShoppingBagServiceImpl implements ShoppingBagService {
 
-    private final WebClient webClient;
+    private  WebClient webClient;
     private final RestHighLevelClient restHighLevelClient;
     private final ObjectMapper objectMapper;
 
+    @Value("${log.api.host}")
+    private String LOG_API_HOST;
+
     private final String ITEM_RT_INDEX ="item-rt";
 
-    public ShoppingBagServiceImpl(final WebClient.Builder webClientBuilder,
-                                  final RestHighLevelClient restHighLevelClient,
-                                  final ObjectMapper objectMapper) {
-        this.webClient = webClientBuilder.baseUrl("http://api.ssho.tech:8082").build();
+    public ShoppingBagServiceImpl(final RestHighLevelClient restHighLevelClient, final ObjectMapper objectMapper) {
         this.restHighLevelClient = restHighLevelClient;
         this.objectMapper = objectMapper;
     }
@@ -39,6 +39,8 @@ public class ShoppingBagServiceImpl implements ShoppingBagService {
     public List<List<Item>> getLikeItemsByUserId(final String userId){
 
         List<List<Item>> likedItemsList = new ArrayList<>();
+
+        this.webClient = WebClient.builder().baseUrl(LOG_API_HOST).build();
 
         final Map<Integer, List<SwipeLog>> groupedSwipeLogList =
                 webClient
