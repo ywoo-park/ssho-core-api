@@ -33,10 +33,6 @@ public class CardDeckServiceImpl implements CardDeckService {
     @Override
     public CardDeck cardDeckByUserId(int userId) throws IOException {
 
-        // 회원 추천 상품 캐시 업데이트
-        // 추후에 해당 로직 제외
-        userItemCacheService.updateUserItemCache();
-
         UserItemCache userItemCache = userItemCacheService.getUserItemCache(userId);
 
         List<Item> userItemList = userItemCache.getItemIdList().stream().map(itemId -> {
