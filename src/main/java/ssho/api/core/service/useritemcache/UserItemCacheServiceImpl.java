@@ -25,6 +25,7 @@ import ssho.api.core.domain.useritem.model.req.UserItemReq;
 import ssho.api.core.domain.useritemcache.model.UserItemCache;
 import ssho.api.core.domain.userswipe.model.UserSwipeScore;
 import ssho.api.core.repository.user.UserRepository;
+import ssho.api.core.service.item.ItemServiceImpl;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,14 +39,12 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
     private final UserRepository userRepository;
     private final RestHighLevelClient restHighLevelClient;
     private final ObjectMapper objectMapper;
+    private final ItemServiceImpl itemService;
 
     private WebClient webClient;
 
     @Value("${item.reco.api.host}")
     private String ITEM_RECO_API_HOST;
-
-    @Value("${item.api.host}")
-    private String ITEM_API_HOST;
 
     @Value("${log.api.host}")
     private String LOG_API_HOST;
@@ -55,10 +54,11 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
     private final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder().codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(-1)).build();
 
     public UserItemCacheServiceImpl(final UserRepository userRepository,
-                                    final RestHighLevelClient restHighLevelClient, final ObjectMapper objectMapper) {
+                                    final RestHighLevelClient restHighLevelClient, final ObjectMapper objectMapper, final ItemServiceImpl itemService) {
         this.userRepository = userRepository;
         this.restHighLevelClient = restHighLevelClient;
         this.objectMapper = objectMapper;
+        this.itemService = itemService;
     }
 
     @Override
@@ -119,19 +119,6 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
         return userItemCache;
     }
 
-    private List<Item> items() {
-
-        this.webClient = WebClient.builder().baseUrl(ITEM_API_HOST).exchangeStrategies(exchangeStrategies).build();
-
-        return webClient
-                .get()
-                .uri("/item")
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<Item>>() {
-                })
-                .block();
-    }
-
     private List<String> swipedItemIdList(String userId) {
 
         this.webClient = WebClient.builder().baseUrl(LOG_API_HOST).exchangeStrategies(exchangeStrategies).build();
@@ -153,7 +140,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
     private UserItemReq getUserItemList() {
 
         // 전체 등록 상품 조회
-        List<String> itemIdList = items().stream().map(Item::getId).collect(Collectors.toList());
+        List<String> itemIdList = itemService.getItems().stream().map(Item::getId).collect(Collectors.toList());
 
         // 회원 전체 스와이프 로그 조회
         List<UserSwipeLogRes> userSwipeList = swipeLogs();

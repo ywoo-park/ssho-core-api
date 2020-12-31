@@ -15,7 +15,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Item {
+public class Item implements Comparable<Item> {
     private String id;                  // 상품 고유 번호
     private String category;            // 상품 카테고리
     private String mallNo;              // 쇼핑몰 고유 번호
@@ -26,5 +26,33 @@ public class Item {
     private String link;                // 상품 상세 페이지 URL
     private List<Tag> tagList;          // 태그 리스트
     private ProductExtra productExtra;  // 상품 상세 정보
+
+    @Override
+    public int compareTo(Item item) {
+
+        String a = this.id;
+        String b = item.id;
+
+        String mallNoA = a.substring(0,4);
+        String mallNoB = b.substring(0,4);
+
+        String uniqueIdA = a.substring(4);
+        String uniqueIdB = b.substring(4);
+
+        if(Integer.parseInt(mallNoA) > Integer.parseInt(mallNoB)) {
+            return 1;
+        }
+        else if(Integer.parseInt(mallNoA) < Integer.parseInt(mallNoB)){
+            return -1;
+        }
+        else{
+            if(Integer.parseInt(uniqueIdA) > Integer.parseInt(uniqueIdB)){
+                return 1;
+            }
+            else {
+                return -1;
+            }
+        }
+    }
 }
 
