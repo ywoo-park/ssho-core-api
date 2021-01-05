@@ -66,7 +66,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
 
         UserItemReq userItemReq = getUserItemList();
 
-        this.webClient = WebClient.builder().baseUrl("http://localhost:5000").exchangeStrategies(exchangeStrategies).build();
+        this.webClient = WebClient.builder().baseUrl(ITEM_RECO_API_HOST).exchangeStrategies(exchangeStrategies).build();
 
         // 회원 고유 번호 오름차순으로 추천 상품 캐시 생성
         List<UserItemCache> userItemCacheList =
