@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import ssho.api.core.domain.item.model.Item;
+import ssho.api.core.domain.mall.model.Mall;
 import ssho.api.core.domain.swipelog.model.SwipeLog;
 import ssho.api.core.domain.swipelog.model.res.UserSwipeLogRes;
 import ssho.api.core.domain.user.model.User;
@@ -26,6 +27,7 @@ import ssho.api.core.domain.useritemcache.model.UserItemCache;
 import ssho.api.core.domain.userswipe.model.UserSwipeScore;
 import ssho.api.core.repository.user.UserRepository;
 import ssho.api.core.service.item.ItemServiceImpl;
+import ssho.api.core.service.mall.MallServiceImpl;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,6 +42,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
     private final RestHighLevelClient restHighLevelClient;
     private final ObjectMapper objectMapper;
     private final ItemServiceImpl itemService;
+    private final MallServiceImpl mallService;
 
     private WebClient webClient;
 
@@ -54,11 +57,13 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
     private final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder().codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(-1)).build();
 
     public UserItemCacheServiceImpl(final UserRepository userRepository,
-                                    final RestHighLevelClient restHighLevelClient, final ObjectMapper objectMapper, final ItemServiceImpl itemService) {
+                                    final RestHighLevelClient restHighLevelClient, final ObjectMapper objectMapper, final ItemServiceImpl itemService, final MallServiceImpl mallService) {
         this.userRepository = userRepository;
         this.restHighLevelClient = restHighLevelClient;
         this.objectMapper = objectMapper;
         this.itemService = itemService;
+        this.mallService = mallService;
+
     }
 
     @Override
@@ -93,7 +98,13 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
             List<String> mallNoList = userItemCache.getMallNoList();
             List<String> itemIdList = new ArrayList<>();
 
-            mallNoList.forEach(mallNo -> itemIdList.addAll(itemService.getItemsByMallNo(mallNo).stream().map(Item::getId).collect(Collectors.toList())));
+            for (String mallNo : mallNoList) {
+                try {
+                    itemIdList.addAll(itemService.getItemsByMallNo(mallNo).stream().map(Item::getId).collect(Collectors.toList()));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
 
             userItemCache.setItemIdList(itemIdList);
         });
@@ -149,12 +160,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
 
     private UserItemReq getUserItemList() {
 
-        //TODO: 전체 몰 정보 조회
-        List<String> mallNoList = new ArrayList<>();
-        mallNoList.add("0001");
-        mallNoList.add("0002");
-        mallNoList.add("0003");
-        mallNoList.add("0004");
+        List<Mall> mallList = mallService.getMallList().stream().filter(mall -> mall.getLastSyncTime() != null).collect(Collectors.toList());
 
         // 회원 전체 스와이프 로그 조회
         List<UserSwipeLogRes> userSwipeList = swipeLogs();
@@ -165,31 +171,33 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
         userSwipeList
                 .forEach(userSwipe -> {
                     UserSwipeScore userSwipeScore = new UserSwipeScore();
-                    int[] scoreList = new int[mallNoList.size()];
+                    int[] scoreList = new int[mallList.size()];
 
                     List<SwipeLog> swipeLogList = userSwipe.getSwipeLogList();
 
                     String userId = userSwipe.getUserId();
                     userSwipeScore.setUserId(userId);
 
-                    for (int i = 0; i < mallNoList.size(); i++) {
+                    for (int i = 0; i < mallList.size(); i++) {
 
-                        String mallNo = mallNoList.get(i);
+                        Mall mall = mallList.get(i);
 
                         if(swipeLogList == null || swipeLogList.size() == 0) {
                             continue;
                         }
 
-                        for (int j = 0; j < swipeLogList.size(); j++) {
+                        for (SwipeLog swipeLog : swipeLogList) {
 
-                            if(swipeLogList.get(j).getScore() == 0 ) continue;
+                            if (swipeLog.getScore() == 0) continue;
 
-                            String itemId = swipeLogList.get(j).getItemId();
+                            String itemId = swipeLog.getItemId();
 
                             try {
-                                String swipeMallNo = itemService.getItemById(itemId, "item-rt").getMallNo();
-                                if (swipeMallNo.equals(mallNo)) {
-                                    scoreList[i] = scoreList[i] + swipeLogList.get(j).getScore();
+                                if(itemService.getItemById(itemId, "item" + "-" + mall.getId() + "-" + "rt") != null){
+                                    String swipeMallNo = itemService.getItemById(itemId, "item" + "-" + mall.getId() + "-" + "rt").getMallNo();
+                                    if (swipeMallNo.equals(mall.getId())) {
+                                        scoreList[i] = scoreList[i] + swipeLog.getScore();
+                                    }
                                 }
                             } catch (IOException e) {
                                 e.printStackTrace();
@@ -201,7 +209,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
                     userSwipeScoreList.add(userSwipeScore);
                 });
 
-        userItemReq.setMallNoList(mallNoList);
+        userItemReq.setMallNoList(mallList.stream().map(Mall::getId).collect(Collectors.toList()));
         userItemReq.setUserSwipeScoreList(userSwipeScoreList);
 
         return userItemReq;

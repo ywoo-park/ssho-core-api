@@ -7,7 +7,7 @@ import lombok.Data;
  */
 @Data
 public class SwipeLog {
-    private int userId;      // 회원 고유 번호
+    private int userId;         // 회원 고유 번호
     private String itemId;      // 상품 고유 번호
     private int score;          // 스와이프 score
     private String swipeTime;   // 스와이프 로그 생성 시각

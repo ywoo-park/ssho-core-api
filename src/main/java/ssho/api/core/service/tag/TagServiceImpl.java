@@ -81,6 +81,35 @@ public class TagServiceImpl implements TagService {
         }
     }
 
+    @Override
+    public Tag getTagByName(String tagName) {
+
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.indices(TAG_INDEX);
+
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.termQuery("name", tagName));
+        searchSourceBuilder.size(10);
+        searchRequest.source(searchSourceBuilder);
+
+        try {
+            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+
+            return Stream.of(searchResponse.getHits().getHits())
+                    .map(SearchHit::getSourceAsString)
+                    .map(src -> {
+                        try {
+                            return objectMapper.readValue(src, Tag.class);
+                        } catch (IOException e) {
+                            return null;
+                        }
+                    })
+                    .collect(Collectors.toList()).get(0);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private static String getUniqueId() {
         return UUID.randomUUID().toString().replace("-", "");
     }

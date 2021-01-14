@@ -8,4 +8,5 @@ import java.util.List;
 public interface TagService {
     void save(List<String> tagNameList) throws IOException;
     List<Tag> getTagList();
+    Tag getTagByName(String tagName);
 }
