@@ -85,6 +85,26 @@ public class ItemServiceImpl implements ItemService{
     }
 
     @Override
+    public Item getItemById(String itemId) {
+
+        List<Mall> mallList = mallService.getMallList().stream().filter(mall ->
+                mall.getLastSyncTime() != null).collect(Collectors.toList());
+
+        List<Item> itemList = mallList.stream().map(mall -> {
+            String index = "item" + "-" + mall.getId() + "-" + "rt" + "-" + mall.getLastSyncTime();
+            try {
+                GetRequest getRequest = new GetRequest(index, itemId);
+                GetResponse getResponse = restHighLevelClient.get(getRequest, RequestOptions.DEFAULT);
+                return objectMapper.readValue(getResponse.getSourceAsString(), Item.class);
+            } catch(Exception e) {
+                return null;
+            }
+        }).collect(Collectors.toList());
+
+        return itemList.stream().filter(Objects::nonNull).collect(Collectors.toList()).get(0);
+    }
+
+    @Override
     public Item getItemCumById(String itemId) {
 
         List<Mall> mallList = mallService.getMallList().stream().filter(mall ->

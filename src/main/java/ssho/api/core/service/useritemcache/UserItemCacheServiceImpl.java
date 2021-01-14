@@ -71,7 +71,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
 
         UserItemReq userItemReq = getUserItemList();
 
-        this.webClient = WebClient.builder().baseUrl(ITEM_RECO_API_HOST).exchangeStrategies(exchangeStrategies).build();
+        this.webClient = WebClient.builder().baseUrl("http://localhost:5000").exchangeStrategies(exchangeStrategies).build();
 
         // 회원 고유 번호 오름차순으로 추천 상품 캐시 생성
         List<UserItemCache> userItemCacheList =
@@ -122,7 +122,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
         // 스와이프한 상품 고유 번호 리스트 조회
         List<String> swipedItemIdList = swipedItemIdList(userItemCache.getUserId());
 
-        if(swipedItemIdList.size() > 0) {
+        if (swipedItemIdList.size() > 0) {
             // 스와이프한 상품 필터링
             // 20개 상품
             List<String> filteredItemIdList =
@@ -171,40 +171,44 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
         userSwipeList
                 .forEach(userSwipe -> {
                     UserSwipeScore userSwipeScore = new UserSwipeScore();
+                    userSwipeScore.setUserId(userSwipe.getUserId());
+
                     int[] scoreList = new int[mallList.size()];
 
-                    List<SwipeLog> swipeLogList = userSwipe.getSwipeLogList();
+                    if (userSwipe.getSwipeLogList() != null) {
 
-                    String userId = userSwipe.getUserId();
-                    userSwipeScore.setUserId(userId);
+                        List<SwipeLog> swipeLogList = userSwipe.getSwipeLogList();
 
-                    for (int i = 0; i < mallList.size(); i++) {
+                        for (int i = 0; i < mallList.size(); i++) {
 
-                        Mall mall = mallList.get(i);
+                            Mall mall = mallList.get(i);
 
-                        if(swipeLogList == null || swipeLogList.size() == 0) {
-                            continue;
-                        }
+                            for (SwipeLog swipeLog : swipeLogList) {
 
-                        for (SwipeLog swipeLog : swipeLogList) {
+                                if (swipeLog.getScore() == 0) {
+                                    continue;
+                                }
 
-                            if (swipeLog.getScore() == 0) continue;
+                                String itemId = swipeLog.getItemId();
 
-                            String itemId = swipeLog.getItemId();
+                                try {
+                                    Item item = itemService.getItemById(itemId, "item" + "-" + mall.getId() + "-" + "cum");
 
-                            try {
-                                if(itemService.getItemById(itemId, "item" + "-" + mall.getId() + "-" + "rt") != null){
-                                    String swipeMallNo = itemService.getItemById(itemId, "item" + "-" + mall.getId() + "-" + "rt").getMallNo();
+                                    if(item.equals(new Item())){
+                                        continue;
+                                    }
+
+                                    String swipeMallNo = item.getMallNo();
+
                                     if (swipeMallNo.equals(mall.getId())) {
                                         scoreList[i] = scoreList[i] + swipeLog.getScore();
                                     }
+                                } catch (IOException e) {
+                                    e.printStackTrace();
                                 }
-                            } catch (IOException e) {
-                                e.printStackTrace();
                             }
                         }
                     }
-
                     userSwipeScore.setScoreList(scoreList);
                     userSwipeScoreList.add(userSwipeScore);
                 });
@@ -217,7 +221,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
 
     private List<UserSwipeLogRes> swipeLogs() {
 
-        this.webClient = WebClient.builder().baseUrl(LOG_API_HOST).exchangeStrategies(exchangeStrategies).build();
+        this.webClient = WebClient.builder().baseUrl("http://localhost:8082").exchangeStrategies(exchangeStrategies).build();
 
         List<User> userList = userRepository.findAll();
 
@@ -237,8 +241,8 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
         try {
             DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(index);
             restHighLevelClient.indices().delete(deleteIndexRequest, RequestOptions.DEFAULT);
+        } catch (ElasticsearchStatusException | IOException e) {
         }
-        catch (ElasticsearchStatusException | IOException e) { }
     }
 
     private void save(List<UserItemCache> cacheList, String index) throws IOException {

@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface ItemService {
     List<Item> getItems();
+    Item getItemById(String itemId);
     Item getItemCumById(String itemId);
     List<Item> getItemsByMallNo(String mallNo) throws IOException;
     Item getItemById(String itemId, String index) throws IOException;
