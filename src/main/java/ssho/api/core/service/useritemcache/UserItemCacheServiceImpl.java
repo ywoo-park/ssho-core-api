@@ -192,16 +192,18 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
                                 String itemId = swipeLog.getItemId();
 
                                 try {
-                                    Item item = itemService.getItemById(itemId, "item" + "-" + mall.getId() + "-" + "cum");
+                                    if(itemService.getItemById(itemId, "item" + "-" + mall.getId() + "-" + "cum") != null) {
+                                        Item item = itemService.getItemById(itemId, "item" + "-" + mall.getId() + "-" + "cum");
 
-                                    if(item.equals(new Item())){
-                                        continue;
-                                    }
+                                        if(item.equals(new Item())){
+                                            continue;
+                                        }
 
-                                    String swipeMallNo = item.getMallNo();
+                                        String swipeMallNo = item.getMallNo();
 
-                                    if (swipeMallNo.equals(mall.getId())) {
-                                        scoreList[i] = scoreList[i] + swipeLog.getScore();
+                                        if (swipeMallNo.equals(mall.getId())) {
+                                            scoreList[i] = scoreList[i] + swipeLog.getScore();
+                                        }
                                     }
                                 } catch (IOException e) {
                                     e.printStackTrace();

@@ -16,7 +16,7 @@ public class TagServiceTest {
 
     @Test
     void save() throws IOException {
-        String tagName = "포멀";
+        String tagName = "스포티룩";
         List<String> list = new ArrayList<>();
         list.add(tagName);
         tagService.save(list);

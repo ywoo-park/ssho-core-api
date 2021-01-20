@@ -1,9 +1,9 @@
 package ssho.api.core.service.shoppingbag;
 
-import ssho.api.core.domain.item.model.Item;
+import ssho.api.core.domain.shoppingbag.ShoppingBagCardSet;
 
 import java.util.List;
 
 public interface ShoppingBagService {
-    List<List<Item>> getLikeItemsByUserId(final String userId);
+    List<ShoppingBagCardSet> getLikeItemsByUserId(final String userId);
 }
