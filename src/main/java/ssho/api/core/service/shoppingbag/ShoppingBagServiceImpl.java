@@ -1,9 +1,6 @@
 package ssho.api.core.service.shoppingbag;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -16,7 +13,6 @@ import ssho.api.core.domain.usercardset.UserCardSet;
 import ssho.api.core.service.item.ItemServiceImpl;
 import ssho.api.core.service.usercardset.UserCardSetServiceImpl;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

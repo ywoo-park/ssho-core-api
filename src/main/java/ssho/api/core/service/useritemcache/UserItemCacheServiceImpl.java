@@ -8,9 +8,14 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
@@ -22,17 +27,20 @@ import ssho.api.core.domain.mall.model.Mall;
 import ssho.api.core.domain.swipelog.model.SwipeLog;
 import ssho.api.core.domain.swipelog.model.res.UserSwipeLogRes;
 import ssho.api.core.domain.user.model.User;
-import ssho.api.core.domain.useritem.model.req.UserItemReq;
+import ssho.api.core.domain.useritemcache.model.UserItem;
+import ssho.api.core.domain.useritemcache.model.UserMall;
+import ssho.api.core.domain.useritemcache.model.req.UserItemCacheReq;
 import ssho.api.core.domain.useritemcache.model.UserItemCache;
+import ssho.api.core.domain.useritemcache.model.UserItemSimilarity;
 import ssho.api.core.domain.userswipe.model.UserSwipeScore;
 import ssho.api.core.repository.user.UserRepository;
 import ssho.api.core.service.item.ItemServiceImpl;
 import ssho.api.core.service.mall.MallServiceImpl;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -69,18 +77,18 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
     @Override
     public void updateUserItemCache() throws IOException {
 
-        UserItemReq userItemReq = getUserItemList();
+        UserItemCacheReq userItemCacheReq = getUserItemList();
 
         this.webClient = WebClient.builder().baseUrl(ITEM_RECO_API_HOST).exchangeStrategies(exchangeStrategies).build();
 
-        // 회원 고유 번호 오름차순으로 추천 상품 캐시 생성
+        // 회원 추천 상품 캐시 생성
         List<UserItemCache> userItemCacheList =
                 webClient
                         .post()
                         .uri("/reco/mf")
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
-                        .bodyValue(userItemReq)
+                        .bodyValue(userItemCacheReq)
                         .retrieve()
                         .bodyToMono(new ParameterizedTypeReference<List<UserItemCache>>() {
                         })
@@ -91,22 +99,124 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
                             return -1;
                         }).collect(Collectors.toList());
 
+        // 회원 캐시 내 몰 가중치 필터링
+        // 1. NaN -> 0
+        // 2. Normalize
         userItemCacheList.forEach(userItemCache -> {
 
-            userItemCache.setId(Integer.parseInt(userItemCache.getUserId()));
+                    List<Double> mallRateList = userItemCache.getUserMallList().stream().map(UserMall::getRate).collect(Collectors.toList());
 
-            List<String> mallNoList = userItemCache.getMallNoList();
-            List<String> itemIdList = new ArrayList<>();
+                    userItemCache.getUserMallList().forEach(userMall -> {
+                        Double rate = userMall.getRate();
+                        if(Double.isNaN(rate)){
+                            userMall.setRate(0.0);
+                        }
+                        userMall.setRate(normalize(rate, mallRateList));
+                    });
+                }
+        );
 
-            for (String mallNo : mallNoList) {
-                try {
-                    itemIdList.addAll(itemService.getItemsByMallNo(mallNo).stream().map(Item::getId).collect(Collectors.toList()));
-                } catch (IOException e) {
-                    e.printStackTrace();
+        // 몰 가중치 내림차순 정렬
+        userItemCacheList.forEach(userItemCache -> Collections.sort(userItemCache.getUserMallList()));
+
+        // 몰별 전체 상품 조회
+        Map<String, List<Item>> mallItemListMap = mallItemListMap();
+
+        userItemCacheList.forEach(userItemCache -> {
+            String userId = userItemCache.getUserId();
+            List<Item> recentItemList = recentItemList(Integer.parseInt(userId));
+
+            // 최근 스와이프 상품이 있을시
+            if(recentItemList.size() > 0){
+
+                // 전체 상품 리스트에서 필터링
+                // 1. imageVec==null 제외
+                // 2. 최근 스와이프 상품 제외
+                List<Item> itemList = itemService.getItems().stream().filter(item -> {
+                    if(item.getImageVec() == null){
+                        return false;
+                    }
+
+                    for(Item recentItem: recentItemList){
+                        if(recentItem.getId().equals(item.getId())){
+                            return false;
+                        }
+                    }
+                    return true;
+                }).collect(Collectors.toList());
+
+                UserItemSimilarity userItemSimilarity = new UserItemSimilarity();
+                userItemSimilarity.setRecentItemList(recentItemList);
+                userItemSimilarity.setUserItemList(itemList.stream().map(item -> {
+                    UserItem userItem = new UserItem();
+                    userItem.setItem(item);
+                    return userItem;
+                }).collect(Collectors.toList()));
+
+                this.webClient = WebClient.builder().baseUrl(ITEM_RECO_API_HOST).exchangeStrategies(exchangeStrategies).build();
+
+                userItemSimilarity =
+                        webClient
+                                .post()
+                                .uri("/feature/distance")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .bodyValue(userItemSimilarity)
+                                .retrieve()
+                                .bodyToMono(new ParameterizedTypeReference<UserItemSimilarity>() {
+                                })
+                                .block();
+
+                Collections.sort(userItemSimilarity.getUserItemList());
+                userItemCache.setUserItemList(userItemSimilarity.getUserItemList());
+                userItemCache.setRecentItemIdList(userItemSimilarity.getRecentItemList().stream().map(Item::getId).collect(Collectors.toList()));
+
+                List<UserMall> userMallList = userItemCache.getUserMallList();
+                List<UserItem> userItemList = userItemCache.getUserItemList();
+
+                // 몰 가중치가 모두 0.0인 경우
+                if(userMallList.stream().map(UserMall::getRate).collect(Collectors.toList()).equals(new ArrayList<>(Collections.nCopies(userMallList.size(), 0.0)))){
+                    userItemCache.setItemIdList(userItemCache.getUserItemList().stream().map(userItem -> userItem.getItem().getId()).collect(Collectors.toList()));
+                } else {
+                    userItemList.stream().forEach(userItem -> {
+                        String mallNo = userItem.getItem().getMallNo();
+                        Double mallRate = userMallList
+                                                .stream()
+                                                .filter(userMall -> userMall.getMall().getId().equals(mallNo))
+                                                .map(UserMall::getRate)
+                                                .findFirst()
+                                                .orElse(1.0);
+
+                        Double newItemRate = userItem.getRate() * mallRate;
+                        userItem.setRate(newItemRate);
+                    });
                 }
             }
 
-            userItemCache.setItemIdList(itemIdList);
+            // 최근 스와이프 상품이 없을시
+            else {
+                List<Item> itemList = new ArrayList<>();
+                userItemCache.getUserMallList().forEach(userMall -> itemList.addAll(mallItemListMap.get(userMall.getMall().getId())));
+                userItemCache.setItemIdList(itemList.stream().map(Item::getId).collect(Collectors.toList()));
+            }
+        });
+
+        userItemCacheList.forEach(userItemCache -> {
+            if(userItemCache.getUserItemList() != null){
+                userItemCache.getUserItemList().forEach(userItem -> {
+                    Item item = new Item();
+                    item.setId(userItem.getItem().getId());
+                    userItem.setItem(item);
+                });
+            }
+
+            if(userItemCache.getUserMallList() != null) {
+                userItemCache.getUserMallList().forEach(userMall -> {
+                    Mall mall = new Mall();
+                    mall.setId(userMall.getMall().getId());
+                    userMall.setMall(mall);
+                });
+            }
         });
 
         delete(USER_ITEM_CACHE_INDEX);
@@ -126,11 +236,13 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
             // 스와이프한 상품 필터링
             // 20개 상품
             List<String> filteredItemIdList =
-                    userItemCache.getItemIdList()
-                            .stream()
-                            .filter(itemId -> !swipedItemIdList.contains(itemId))
-                            .collect(Collectors.toList())
-                            .subList(0, 20);
+                userItemCache.getUserItemList()
+                        .stream()
+                        .map(UserItem::getItem)
+                        .map(Item::getId)
+                        .filter(itemId -> !swipedItemIdList.contains(itemId))
+                        .collect(Collectors.toList())
+                        .subList(0, 20);
 
             userItemCache.setItemIdList(filteredItemIdList);
         }
@@ -158,14 +270,14 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
         return swipedItemIdList;
     }
 
-    private UserItemReq getUserItemList() {
+    private UserItemCacheReq getUserItemList() {
 
         List<Mall> mallList = mallService.getMallList().stream().filter(mall -> mall.getLastSyncTime() != null).collect(Collectors.toList());
 
         // 회원 전체 스와이프 로그 조회
         List<UserSwipeLogRes> userSwipeList = swipeLogs();
 
-        UserItemReq userItemReq = new UserItemReq();
+        UserItemCacheReq userItemReq = new UserItemCacheReq();
         List<UserSwipeScore> userSwipeScoreList = new ArrayList<>();
 
         userSwipeList
@@ -192,10 +304,10 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
                                 String itemId = swipeLog.getItemId();
 
                                 try {
-                                    if(itemService.getItemById(itemId, "item" + "-" + mall.getId() + "-" + "cum") != null) {
+                                    if (itemService.getItemById(itemId, "item" + "-" + mall.getId() + "-" + "cum") != null) {
                                         Item item = itemService.getItemById(itemId, "item" + "-" + mall.getId() + "-" + "cum");
 
-                                        if(item.equals(new Item())){
+                                        if (item.equals(new Item())) {
                                             continue;
                                         }
 
@@ -215,10 +327,38 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
                     userSwipeScoreList.add(userSwipeScore);
                 });
 
-        userItemReq.setMallNoList(mallList.stream().map(Mall::getId).collect(Collectors.toList()));
+        userItemReq.setMallList(mallList);
         userItemReq.setUserSwipeScoreList(userSwipeScoreList);
 
         return userItemReq;
+    }
+
+    public List<UserItemCache> getAllUserCache() {
+
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.indices(USER_ITEM_CACHE_INDEX);
+
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+        searchSourceBuilder.size(10000);
+        searchRequest.source(searchSourceBuilder);
+
+        try {
+            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+
+            return Stream.of(searchResponse.getHits().getHits())
+                    .map(SearchHit::getSourceAsString)
+                    .map(src -> {
+                        try {
+                            return objectMapper.readValue(src, UserItemCache.class);
+                        } catch (IOException e) {
+                            return null;
+                        }
+                    })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private List<UserSwipeLogRes> swipeLogs() {
@@ -268,5 +408,54 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
         GetRequest getRequest = new GetRequest(index, String.valueOf(userId));
         GetResponse getResponse = restHighLevelClient.get(getRequest, RequestOptions.DEFAULT);
         return objectMapper.readValue(getResponse.getSourceAsString(), UserItemCache.class);
+    }
+
+    private Double normalize(Double e, List<Double> list) {
+        Double max = Collections.max(list);
+        Double min = Collections.min(list);
+
+        if (max - min == 0.0) {
+            return 0.0;
+        }
+
+        return (e - min) / (max - min);
+    }
+
+    public List<Item> recentItemList(int userId) {
+        List<Item> itemList = new ArrayList<>();
+
+        this.webClient = WebClient.builder().baseUrl(LOG_API_HOST).exchangeStrategies(exchangeStrategies).build();
+        List<SwipeLog> swipeLogList =
+                webClient
+                        .get()
+                        .uri("/log/swipe/user/like/recent?userId=" + userId)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .retrieve()
+                        .bodyToMono(new ParameterizedTypeReference<List<SwipeLog>>() {
+                        })
+                        .block();
+
+        if(swipeLogList.size() == 0){
+            return itemList;
+        }
+
+        if(swipeLogList.size() > 5){
+            swipeLogList = swipeLogList.subList(0,5);
+        }
+
+        return swipeLogList
+                    .stream()
+                    .map(swipeLog -> itemService.getItemById(swipeLog.getItemId()))
+                    .collect(Collectors.toList());
+    }
+
+    public Map<String, List<Item>> mallItemListMap() throws IOException {
+        Map<String, List<Item>> mallItemListMap = new HashMap<>();
+
+        List<Mall> mallList = mallService.getMallList().stream().filter(mall -> mall.getLastSyncTime() != null).collect(Collectors.toList());
+        for (Mall mall : mallList) {
+            mallItemListMap.put(mall.getId(), itemService.getItemsByMallNo(mall.getId()));
+        }
+        return mallItemListMap;
     }
 }

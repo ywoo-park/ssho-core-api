@@ -22,9 +22,11 @@ public class Item implements Comparable<Item> {
     private String mallNo;              // 쇼핑몰 고유 번호
     private String mallNm;              // 쇼핑몰 이름
     private String title;               // 상품 이름
+    private String engTitle;
     private String price;               // 상품 판매가
     private String discPrice;           // 상품 할인가
     private String imageUrl;            // 상품 대표 사진 URL
+    private List<Double> imageVec;      // 상품 이미지 고유 벡터
     private String link;                // 상품 상세 페이지 URL
     private List<Tag> tagList;          // 태그 리스트
     private ProductExtra productExtra;  // 상품 상세 정보

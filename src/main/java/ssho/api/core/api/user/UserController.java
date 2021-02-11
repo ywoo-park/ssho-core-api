@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import ssho.api.core.domain.user.model.User;
 import ssho.api.core.domain.user.model.req.SignInReq;
+import ssho.api.core.domain.user.model.req.SocialSignInReq;
 import ssho.api.core.domain.user.model.res.SignInRes;
 import ssho.api.core.service.user.UserServiceImpl;
 
@@ -28,6 +29,16 @@ public class UserController {
     @PostMapping("/signin")
     public SignInRes signin(@RequestBody SignInReq signInReq) {
         return userService.authUser(signInReq);
+    }
+
+    /**
+     * 로그인(소셜)
+     * @param signInReq
+     * @return
+     */
+    @PostMapping("/signin/social")
+    public SignInRes socialSignin(@RequestBody SocialSignInReq signInReq) {
+        return userService.authSocialUser(signInReq);
     }
 
     /**

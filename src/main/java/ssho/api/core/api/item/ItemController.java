@@ -11,6 +11,7 @@ import ssho.api.core.service.mall.MallServiceImpl;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -38,5 +39,10 @@ public class ItemController {
     @GetMapping("/{mallNo}")
     public List<Item> getMallItemList(@PathVariable String mallNo) throws IOException {
         return itemService.getItemsByMallNo(mallNo);
+    }
+
+    @GetMapping("imageVec/test")
+    public List<Item> getItemListImageVecN(){
+        return itemService.getItems().stream().filter(item -> item.getImageVec() == null).collect(Collectors.toList());
     }
 }

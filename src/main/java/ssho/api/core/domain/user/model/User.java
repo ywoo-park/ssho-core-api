@@ -23,4 +23,8 @@ public class User {
     private Gender gender;
 
     private boolean admin;
+    private boolean social;
+
+    @Enumerated(EnumType.STRING)
+    private Channel channel;
 }
