@@ -3,7 +3,7 @@ package ssho.api.core.service.useritemcache;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import ssho.api.core.domain.item.model.Item;
+import ssho.api.core.domain.item.Item;
 
 import java.io.IOException;
 import java.util.List;

@@ -26,7 +26,7 @@ public class TagController {
      */
     @PostMapping("")
     public void saveAll(@RequestBody List<String> tagNameList) throws IOException {
-        tagService.save(tagNameList);
+        tagService.saveByName(tagNameList);
     }
 
     /**
@@ -34,7 +34,7 @@ public class TagController {
      * @return
      */
     @GetMapping("")
-    public List<Tag> getAllTagList() {
+    public List<Tag> getTagList() {
         return tagService.getTagList();
     }
 }

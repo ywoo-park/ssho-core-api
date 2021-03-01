@@ -26,20 +26,22 @@ public class MallServiceTest {
     void save() throws IOException {
         List<Mall> mallList = new ArrayList<>();
         Mall mall = new Mall();
-        mall.setName("모어댄라이크");
-        mall.setId("0013");
+        mall.setName("홀리넘버7");
+        mall.setId("0021");
 
         List<Category> categoryList = new ArrayList<>();
-        categoryList.add(new Category("OUTER", CategoryCode.OUTER));
-        categoryList.add(new Category("TOP", CategoryCode.TOP));
-        categoryList.add(new Category("DRESS", CategoryCode.DRESS));
-        categoryList.add(new Category("BOTTOM", CategoryCode.BOTTOM));
+        categoryList.add(new Category("Outer", CategoryCode.OUTER));
+        categoryList.add(new Category("Top", CategoryCode.TOP));
+        categoryList.add(new Category("Dress", CategoryCode.DRESS));
+        categoryList.add(new Category("Bottom", CategoryCode.BOTTOM));
+        categoryList.add(new Category("Hat", CategoryCode.HAT));
+        categoryList.add(new Category("ACC", CategoryCode.EXTRA));
 
         mall.setCategoryList(categoryList);
 
 
         List<String> tagNameList = new ArrayList<>();
-        tagNameList.add("유니섹스");
+        tagNameList.add("펑크룩");
 
         List<Tag> tagList = tagNameList.stream().map(tagName -> tagService.getTagByName(tagName)).collect(Collectors.toList());
 
@@ -47,7 +49,21 @@ public class MallServiceTest {
 
         mallList.add(mall);
 
-        mallService.save(mallList);
+        //mallService.save(mallList);
+    }
+
+    @Test
+    void update() throws IOException {
+
+        Mall mall = mallService.getMallById("0013");
+
+        List<String> tagNameList = new ArrayList<>();
+        tagNameList.add("페미닌룩");
+
+        List<Tag> tagList = tagNameList.stream().map(tagName -> tagService.getTagByName(tagName)).collect(Collectors.toList());
+        mall.setTagList(tagList);
+
+        //mallService.updateMall(mall);
     }
 }
 

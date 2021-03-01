@@ -28,6 +28,6 @@ public class ShoppingBagController {
     @GetMapping("")
     public List<ShoppingBagCardSet> getShoppingBagByUserId(final HttpServletRequest httpServletRequest){
         final String userId = String.valueOf(httpServletRequest.getAttribute("userId"));
-        return shoppingBagService.getLikeItemsByUserId(userId);
+        return shoppingBagService.getShoppingBagCardSetListByUserId(userId);
     }
 }

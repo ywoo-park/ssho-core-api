@@ -38,12 +38,24 @@ public class TagServiceImpl implements TagService {
     }
 
     @Override
-    public void save(List<String> tagNameList) throws IOException {
+    public void saveByName(List<String> tagNameList) throws IOException {
 
         for (String name : tagNameList) {
             Tag tag = new Tag();
             tag.setId(getUniqueId());
             tag.setName(name);
+
+            IndexRequest indexRequest = new IndexRequest(TAG_INDEX).source(objectMapper.writeValueAsString(tag), XContentType.JSON);
+            indexRequest.id(tag.getId());
+
+            restHighLevelClient.index(indexRequest, RequestOptions.DEFAULT);
+        }
+    }
+
+    @Override
+    public void save(List<Tag> tagList) throws IOException {
+
+        for (Tag tag : tagList) {
 
             IndexRequest indexRequest = new IndexRequest(TAG_INDEX).source(objectMapper.writeValueAsString(tag), XContentType.JSON);
             indexRequest.id(tag.getId());

@@ -5,5 +5,5 @@ import lombok.Data;
 @Data
 public class UserSwipeScore {
     private String userId;
-    private int[] scoreList;
+    private double[] scoreList;
 }

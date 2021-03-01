@@ -5,5 +5,12 @@ import ssho.api.core.domain.shoppingbag.ShoppingBagCardSet;
 import java.util.List;
 
 public interface ShoppingBagService {
-    List<ShoppingBagCardSet> getLikeItemsByUserId(final String userId);
+
+    /**
+     * userId로
+     *
+     * @param userId
+     * @return
+     */
+    List<ShoppingBagCardSet> getShoppingBagCardSetListByUserId(final String userId);
 }

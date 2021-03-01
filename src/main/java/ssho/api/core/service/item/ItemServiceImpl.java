@@ -20,9 +20,9 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
-import ssho.api.core.domain.item.model.Item;
+import ssho.api.core.domain.item.Item;
 import ssho.api.core.domain.mall.model.Mall;
-import ssho.api.core.domain.useritemcache.model.UserItemCache;
+import ssho.api.core.domain.tag.model.Tag;
 import ssho.api.core.service.mall.MallServiceImpl;
 
 import java.io.IOException;
@@ -40,8 +40,8 @@ public class ItemServiceImpl implements ItemService{
     private final MallServiceImpl mallService;
     private WebClient webClient;
 
-    //@Value("${item.reco.api.host}")
-    private String ITEM_RECO_API_HOST = "http://localhost:5000";
+    @Value("${item.reco.api.host}")
+    private String ITEM_RECO_API_HOST;
 
     private final int SIZE = 10000;
 
@@ -56,7 +56,7 @@ public class ItemServiceImpl implements ItemService{
     void addImageVec() {
 
         List<Mall> mallList = mallService.getMallList().stream().filter(mall ->
-                mall.getLastSyncTime() != null && !mall.getId().equals("0010")).collect(Collectors.toList());
+                mall.getLastSyncTime() != null).collect(Collectors.toList());
 
         this.webClient = WebClient.builder().baseUrl(ITEM_RECO_API_HOST).exchangeStrategies(exchangeStrategies).build();
 
@@ -262,6 +262,19 @@ public class ItemServiceImpl implements ItemService{
         }).collect(Collectors.toList());
 
         return itemList;
+    }
+
+    @Override
+    public List<Item> getItemsByTagId(String tagId) {
+
+        List<Item> itemList = getItems();
+
+        return itemList.stream().filter(item -> {
+
+            List<Tag> tagList = item.getTagList();
+            return tagList.stream().anyMatch(tag -> tag.getId().equals(tagId));
+
+        }).collect(Collectors.toList());
     }
 
     @Override

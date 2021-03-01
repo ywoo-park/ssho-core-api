@@ -1,7 +1,7 @@
 package ssho.api.core.domain.useritemcache.model;
 
 import lombok.Data;
-import ssho.api.core.domain.item.model.Item;
+import ssho.api.core.domain.item.Item;
 
 @Data
 public class UserItem implements Comparable<UserItem> {

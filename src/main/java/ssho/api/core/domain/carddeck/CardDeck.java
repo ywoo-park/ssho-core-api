@@ -1,7 +1,7 @@
 package ssho.api.core.domain.carddeck;
 
 import lombok.Data;
-import ssho.api.core.domain.item.model.Item;
+import ssho.api.core.domain.item.Item;
 
 import java.util.List;
 

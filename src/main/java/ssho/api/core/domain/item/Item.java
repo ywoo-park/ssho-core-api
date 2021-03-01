@@ -1,4 +1,4 @@
-package ssho.api.core.domain.item.model;
+package ssho.api.core.domain.item;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

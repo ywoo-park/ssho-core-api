@@ -17,11 +17,6 @@ public class MallController {
         this.mallService = mallService;
     }
 
-    @PostMapping("")
-    public void saveMallList(@RequestBody List<Mall> mallList) throws IOException {
-        mallService.save(mallList);
-    }
-
     @GetMapping("/list")
     public List<Mall> getMallList() {
         return mallService.getMallList();
@@ -32,8 +27,13 @@ public class MallController {
         return mallService.getMallById(mallNo);
     }
 
-    @PostMapping("/update")
-    public void updateMall(@RequestBody Mall mall) throws IOException {
-        mallService.updateMall(mall);
+    @PostMapping("/list")
+    public void saveMallList(@RequestBody List<Mall> mallList) throws IOException {
+        mallService.saveAll(mallList);
+    }
+
+    @PostMapping("")
+    public void saveMall(@RequestBody Mall mall) throws IOException {
+        mallService.save(mall);
     }
 }

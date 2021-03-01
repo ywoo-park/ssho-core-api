@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -22,7 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
-import ssho.api.core.domain.item.model.Item;
+import ssho.api.core.domain.item.Item;
 import ssho.api.core.domain.mall.model.Mall;
 import ssho.api.core.domain.swipelog.model.SwipeLog;
 import ssho.api.core.domain.swipelog.model.res.UserSwipeLogRes;
@@ -108,7 +107,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
 
                     userItemCache.getUserMallList().forEach(userMall -> {
                         Double rate = userMall.getRate();
-                        if(Double.isNaN(rate)){
+                        if (Double.isNaN(rate)) {
                             userMall.setRate(0.0);
                         }
                         userMall.setRate(normalize(rate, mallRateList));
@@ -127,18 +126,18 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
             List<Item> recentItemList = recentItemList(Integer.parseInt(userId));
 
             // 최근 스와이프 상품이 있을시
-            if(recentItemList.size() > 0){
+            if (recentItemList.size() > 0) {
 
                 // 전체 상품 리스트에서 필터링
                 // 1. imageVec==null 제외
                 // 2. 최근 스와이프 상품 제외
                 List<Item> itemList = itemService.getItems().stream().filter(item -> {
-                    if(item.getImageVec() == null){
+                    if (item.getImageVec() == null) {
                         return false;
                     }
 
-                    for(Item recentItem: recentItemList){
-                        if(recentItem.getId().equals(item.getId())){
+                    for (Item recentItem : recentItemList) {
+                        if (recentItem.getId().equals(item.getId())) {
                             return false;
                         }
                     }
@@ -174,23 +173,25 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
                 List<UserMall> userMallList = userItemCache.getUserMallList();
                 List<UserItem> userItemList = userItemCache.getUserItemList();
 
-                // 몰 가중치가 모두 0.0인 경우
-                if(userMallList.stream().map(UserMall::getRate).collect(Collectors.toList()).equals(new ArrayList<>(Collections.nCopies(userMallList.size(), 0.0)))){
-                    userItemCache.setItemIdList(userItemCache.getUserItemList().stream().map(userItem -> userItem.getItem().getId()).collect(Collectors.toList()));
-                } else {
+                // 몰 가중치가 있는 경우
+                if (!(userMallList.stream().map(UserMall::getRate).collect(Collectors.toList())).equals(new ArrayList<>(Collections.nCopies(userMallList.size(), 0.0)))) {
                     userItemList.stream().forEach(userItem -> {
                         String mallNo = userItem.getItem().getMallNo();
                         Double mallRate = userMallList
-                                                .stream()
-                                                .filter(userMall -> userMall.getMall().getId().equals(mallNo))
-                                                .map(UserMall::getRate)
-                                                .findFirst()
-                                                .orElse(1.0);
+                                .stream()
+                                .filter(userMall -> userMall.getMall().getId().equals(mallNo))
+                                .map(UserMall::getRate)
+                                .findFirst()
+                                .orElse(1.0);
 
                         Double newItemRate = userItem.getRate() * mallRate;
                         userItem.setRate(newItemRate);
                     });
+
+                    Collections.sort(userItemList);
                 }
+
+                userItemCache.setItemIdList(userItemCache.getUserItemList().stream().map(userItem -> userItem.getItem().getId()).collect(Collectors.toList()));
             }
 
             // 최근 스와이프 상품이 없을시
@@ -202,32 +203,41 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
         });
 
         userItemCacheList.forEach(userItemCache -> {
-            if(userItemCache.getUserItemList() != null){
+
+            userItemCache.setId(Integer.parseInt(userItemCache.getUserId()));
+
+            if (userItemCache.getUserItemList() != null) {
                 userItemCache.getUserItemList().forEach(userItem -> {
                     Item item = new Item();
                     item.setId(userItem.getItem().getId());
+                    item.setTitle(userItem.getItem().getTitle());
+                    item.setMallNm(userItem.getItem().getMallNm());
                     userItem.setItem(item);
                 });
             }
 
-            if(userItemCache.getUserMallList() != null) {
+            if (userItemCache.getUserMallList() != null) {
                 userItemCache.getUserMallList().forEach(userMall -> {
                     Mall mall = new Mall();
                     mall.setId(userMall.getMall().getId());
+                    mall.setName(userMall.getMall().getName());
                     userMall.setMall(mall);
                 });
             }
         });
 
         delete(USER_ITEM_CACHE_INDEX);
-        save(userItemCacheList, USER_ITEM_CACHE_INDEX);
+
+        for (UserItemCache userItemCache : userItemCacheList) {
+            save(userItemCache, USER_ITEM_CACHE_INDEX);
+        }
     }
 
     @Override
     public UserItemCache getUserItemCache(int userId) throws IOException {
 
         // 추천 상품 캐시 조회
-        UserItemCache userItemCache = getByUserId(userId, USER_ITEM_CACHE_INDEX);
+        UserItemCache userItemCache = getUserItemCacheByUserId(userId);
 
         // 스와이프한 상품 고유 번호 리스트 조회
         List<String> swipedItemIdList = swipedItemIdList(userItemCache.getUserId());
@@ -236,13 +246,13 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
             // 스와이프한 상품 필터링
             // 20개 상품
             List<String> filteredItemIdList =
-                userItemCache.getUserItemList()
-                        .stream()
-                        .map(UserItem::getItem)
-                        .map(Item::getId)
-                        .filter(itemId -> !swipedItemIdList.contains(itemId))
-                        .collect(Collectors.toList())
-                        .subList(0, 20);
+                    userItemCache.getUserItemList()
+                            .stream()
+                            .map(UserItem::getItem)
+                            .map(Item::getId)
+                            .filter(itemId -> !swipedItemIdList.contains(itemId))
+                            .collect(Collectors.toList())
+                            .subList(0, 20);
 
             userItemCache.setItemIdList(filteredItemIdList);
         }
@@ -285,7 +295,7 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
                     UserSwipeScore userSwipeScore = new UserSwipeScore();
                     userSwipeScore.setUserId(userSwipe.getUserId());
 
-                    int[] scoreList = new int[mallList.size()];
+                    double[] scoreList = new double[mallList.size()];
 
                     if (userSwipe.getSwipeLogList() != null) {
 
@@ -293,13 +303,12 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
 
                         for (int i = 0; i < mallList.size(); i++) {
 
+                            double score = 0.0;
+                            int swipeLogSize = 0;
+
                             Mall mall = mallList.get(i);
 
                             for (SwipeLog swipeLog : swipeLogList) {
-
-                                if (swipeLog.getScore() == 0) {
-                                    continue;
-                                }
 
                                 String itemId = swipeLog.getItemId();
 
@@ -314,13 +323,17 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
                                         String swipeMallNo = item.getMallNo();
 
                                         if (swipeMallNo.equals(mall.getId())) {
-                                            scoreList[i] = scoreList[i] + swipeLog.getScore();
+                                            if(swipeLog.getScore() == 1){
+                                                score = score + swipeLog.getScore();
+                                            }
+                                            swipeLogSize++;
                                         }
                                     }
                                 } catch (IOException e) {
                                     e.printStackTrace();
                                 }
                             }
+                            scoreList[i] = score != 0 && swipeLogSize != 0 ? score / swipeLogSize : 0.0;
                         }
                     }
                     userSwipeScore.setScoreList(scoreList);
@@ -387,27 +400,39 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
         }
     }
 
-    private void save(List<UserItemCache> cacheList, String index) throws IOException {
+    private void save(UserItemCache cache, String index) throws IOException {
 
-        final BulkRequest bulkRequest = new BulkRequest();
+        IndexRequest indexRequest =
+                new IndexRequest(index)
+                        .id(cache.getUserId())
+                        .source(objectMapper.writeValueAsString(cache), XContentType.JSON);
 
-        for (UserItemCache cache : cacheList) {
-
-            IndexRequest indexRequest =
-                    new IndexRequest(index)
-                            .id(cache.getUserId())
-                            .source(objectMapper.writeValueAsString(cache), XContentType.JSON);
-
-            bulkRequest.add(indexRequest);
-        }
-
-        restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+        restHighLevelClient.index(indexRequest, RequestOptions.DEFAULT);
     }
 
-    private UserItemCache getByUserId(int userId, String index) throws IOException {
-        GetRequest getRequest = new GetRequest(index, String.valueOf(userId));
-        GetResponse getResponse = restHighLevelClient.get(getRequest, RequestOptions.DEFAULT);
-        return objectMapper.readValue(getResponse.getSourceAsString(), UserItemCache.class);
+    public UserItemCache getUserItemCacheByUserId(int userId) throws IOException {
+        UserItemCache userItemCache = new UserItemCache();
+
+        GetRequest getRequest = new GetRequest(USER_ITEM_CACHE_INDEX, String.valueOf(userId));
+
+        boolean exist = restHighLevelClient.exists(getRequest, RequestOptions.DEFAULT);
+        if(exist) {
+            GetResponse getResponse = restHighLevelClient.get(getRequest, RequestOptions.DEFAULT);
+            userItemCache = objectMapper.readValue(getResponse.getSourceAsString(), UserItemCache.class);
+
+            List<String> swipedItemIdList = swipedItemIdList(userItemCache.getUserId());
+
+            if(swipedItemIdList.size() > 0) {
+                List<UserItem> filteredUserItemList = userItemCache.getUserItemList().stream().filter(userItem -> !swipedItemIdList.contains(userItem.getItem().getId())).collect(Collectors.toList());
+                userItemCache.setUserItemList(filteredUserItemList);
+
+                List<String> filteredItemIdList = userItemCache.getItemIdList().stream().filter(itemId -> !swipedItemIdList.contains(itemId)).collect(Collectors.toList());
+                userItemCache.setItemIdList(filteredItemIdList);
+            }
+        }
+
+        userItemCache.setId(userId);
+        return userItemCache;
     }
 
     private Double normalize(Double e, List<Double> list) {
@@ -435,18 +460,18 @@ public class UserItemCacheServiceImpl implements UserItemCacheService {
                         })
                         .block();
 
-        if(swipeLogList.size() == 0){
+        if (swipeLogList.size() == 0) {
             return itemList;
         }
 
-        if(swipeLogList.size() > 5){
-            swipeLogList = swipeLogList.subList(0,5);
+        if (swipeLogList.size() > 5) {
+            swipeLogList = swipeLogList.subList(0, 5);
         }
 
         return swipeLogList
-                    .stream()
-                    .map(swipeLog -> itemService.getItemById(swipeLog.getItemId()))
-                    .collect(Collectors.toList());
+                .stream()
+                .map(swipeLog -> itemService.getItemById(swipeLog.getItemId()))
+                .collect(Collectors.toList());
     }
 
     public Map<String, List<Item>> mallItemListMap() throws IOException {

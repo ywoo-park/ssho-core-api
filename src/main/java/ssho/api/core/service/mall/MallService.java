@@ -6,8 +6,36 @@ import java.io.IOException;
 import java.util.List;
 
 public interface MallService {
-    void save(List<Mall> mallList) throws IOException;
+
+    /**
+     * 전체 몰 조회
+     *
+     * @return
+     */
     List<Mall> getMallList();
+
+    /**
+     * 몰 조회
+     *
+     * @param itemId
+     * @return
+     * @throws IOException
+     */
     Mall getMallById(String itemId) throws IOException;
-    void updateMall(Mall mall) throws IOException;
+
+    /**
+     * 몰 전체 저장
+     *
+     * @param mallList
+     * @throws IOException
+     */
+    void saveAll(List<Mall> mallList) throws IOException;
+
+    /**
+     * 몰 저장
+     *
+     * @param mall
+     * @throws IOException
+     */
+    void save(Mall mall) throws IOException;
 }

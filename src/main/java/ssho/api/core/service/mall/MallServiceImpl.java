@@ -37,18 +37,6 @@ public class MallServiceImpl implements MallService {
     }
 
     @Override
-    public void save(List<Mall> mallList) throws IOException {
-
-        for (Mall mall : mallList) {
-
-            IndexRequest indexRequest = new IndexRequest(MALL_INDEX).source(objectMapper.writeValueAsString(mall), XContentType.JSON);
-            indexRequest.id(mall.getId());
-
-            restHighLevelClient.index(indexRequest, RequestOptions.DEFAULT);
-        }
-    }
-
-    @Override
     public List<Mall> getMallList() {
 
         SearchRequest searchRequest = new SearchRequest();
@@ -85,7 +73,19 @@ public class MallServiceImpl implements MallService {
     }
 
     @Override
-    public void updateMall(Mall mall) throws IOException {
-       save(Collections.singletonList(mall));
+    public void saveAll(List<Mall> mallList) throws IOException {
+
+        for (Mall mall : mallList) {
+
+            IndexRequest indexRequest = new IndexRequest(MALL_INDEX).source(objectMapper.writeValueAsString(mall), XContentType.JSON);
+            indexRequest.id(mall.getId());
+
+            restHighLevelClient.index(indexRequest, RequestOptions.DEFAULT);
+        }
+    }
+
+    @Override
+    public void save(Mall mall) throws IOException {
+        saveAll(Collections.singletonList(mall));
     }
 }

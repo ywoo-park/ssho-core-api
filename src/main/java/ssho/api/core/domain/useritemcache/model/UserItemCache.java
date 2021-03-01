@@ -2,11 +2,9 @@ package ssho.api.core.domain.useritemcache.model;
 
 import lombok.*;
 import org.springframework.data.redis.core.RedisHash;
-import ssho.api.core.domain.item.model.Item;
-import ssho.api.core.domain.mall.model.Mall;
+import ssho.api.core.domain.item.Item;
 
 import java.util.List;
-import java.util.Map;
 
 @Builder
 @NoArgsConstructor
@@ -20,6 +18,7 @@ public class UserItemCache {
     private String userId;
 
     private List<String> recentItemIdList;
+    private List<Item> recentItemList;
 
     private List<UserMall> userMallList;
     private List<UserItem> userItemList;

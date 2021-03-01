@@ -1,6 +1,7 @@
 package ssho.api.core.api.useritemcache;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ssho.api.core.domain.useritemcache.model.UserItemCache;
@@ -33,5 +34,13 @@ public class UserItemCacheController {
     @GetMapping("")
     public List<UserItemCache> getAllUserItemCache() {
         return userItemCacheService.getAllUserCache();
+    }
+
+    /**
+     * 회원 추천 상품 캐시 조회
+     */
+    @GetMapping("/{userId}")
+    public UserItemCache getUserItemCacheByUserId(@PathVariable int userId) throws IOException {
+        return userItemCacheService.getUserItemCacheByUserId(userId);
     }
 }

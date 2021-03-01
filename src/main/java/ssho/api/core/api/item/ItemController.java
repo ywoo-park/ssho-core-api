@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import ssho.api.core.domain.item.model.Item;
+import ssho.api.core.domain.item.Item;
 import ssho.api.core.service.item.ItemServiceImpl;
 import ssho.api.core.service.mall.MallServiceImpl;
 
@@ -19,8 +19,8 @@ import java.util.stream.Collectors;
 @RequestMapping("/item")
 public class ItemController {
 
-    private final ItemServiceImpl itemService;
-    private final MallServiceImpl mallService;
+    private ItemServiceImpl itemService;
+    private MallServiceImpl mallService;
 
     public ItemController(ItemServiceImpl itemService, MallServiceImpl mallService){
         this.itemService = itemService;
@@ -36,6 +36,12 @@ public class ItemController {
         return itemService.getItems();
     }
 
+    /**
+     * 몰별 상품 전체 조회
+     * @param mallNo
+     * @return
+     * @throws IOException
+     */
     @GetMapping("/{mallNo}")
     public List<Item> getMallItemList(@PathVariable String mallNo) throws IOException {
         return itemService.getItemsByMallNo(mallNo);
